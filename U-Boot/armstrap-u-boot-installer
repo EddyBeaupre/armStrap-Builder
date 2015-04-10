@@ -1,0 +1,145 @@
+#!/bin/bash
+
+set -e
+
+echo -e "\n$(basename $0) version 1.0a\nCopyright (C) 2015 Eddy Beaupre\n"
+
+if ! [ -f /etc/armStrap.conf ]; then
+  echo "$0: /etc/armStrap.conf not found. Aborting"
+fi
+
+source /etc/armStrap.conf
+
+function usage {
+  echo "Usage: $(basename $0) [PARAMETERS]"
+  echo -e "\nBootLoader Updater:"
+  echo "  -u                      Update the bootloader"
+  echo "  -U <FILE>               Specify the bootloader to use"
+  echo "  -D <DEVICE>             Specify the device to update"
+  echo "  -B <SIZE>               Specify the block size used for writting"
+  echo "  -S <POSITION>           Specify the seek used for writting"
+  echo -e "\nFEX Updater:"
+  echo "  -f                      Update the fex script"
+  echo "  -F <FILE>               Specify the fex script to use"
+  echo "  -N <FILE>               Specify the compiled fex script file"
+  echo "  -M <MAC>                Specify the mac address of the device"
+  echo -e "\nOther options:"
+  echo -e "  -y                      Do not ask for confirmation\n"
+ 
+}
+
+uboot_ldr=${uboot_dir%/}/${armstrap_device}/u-boot-sunxi-with-spl.bin
+uboot_fex=${uboot_dir%/}/${armstrap_device}/${armstrap_device,,}.fex
+
+while getopts ":F:U:D:B:S:M:N:fuy" opt; do
+  case $opt in
+    F)
+      uboot_fex="${OPTARG}"
+      update_fex=1
+      ;;
+    U)
+      uboot_ldr="${OPTARG}"
+      update_ldr=1
+      ;;
+    D)
+      uboot_dev="${OPTARG}"
+      ;;
+    B)
+      uboot_bs="${OPTARG}"
+      ;;
+    S)
+      uboot_sk="${OPTARG}"
+      ;;
+    M)
+      uboot_mac="${OPTARG}"
+      ;;
+    N)
+      uboot_bin="${OPTARG}"
+      ;;
+    f)
+      update_fex=1
+      ;;
+    u)
+      update_ldr=1
+      ;;
+    y)
+      noprompt=1
+      ;;
+    \?)
+      usage
+      exit 0
+      ;;
+    :)
+      printf "Option -%s requires an argument.\n\n" "${OPTARG}"
+      exit 1
+    ;;
+  esac
+done
+
+if [ -z "${update_fex}${update_ldr}" ]; then
+  usage
+fi
+
+function yesNo {
+  if [ -z "$noprompt" ]; then
+    read -p "${1} " -n 1 -r
+    echo
+    if ! [[ $REPLY =~ ^[YyOo]$ ]]; then
+      exit 1
+    fi
+  fi
+}
+
+function updateLoader {
+  echo -e "Bootloader Updater\n"
+  if [ -f "${uboot_ldr}" ]; then
+    if [ -b "${uboot_dev}" ]; then
+      echo "BootLoader : ${uboot_ldr}"
+      echo "    Device : ${uboot_dev}"
+      echo "Block Size : ${uboot_bs}"
+      echo -e "      Seek : ${uboot_sk}\n"
+    else
+      echo "Device ${uboot_dev} is not a block device."
+      exit 1
+    fi
+  else
+    echo "Bootloader ${uboot_ldr} not found."
+    exit 1
+  fi
+  
+  yesNo "About to update the device bootloader, are your sure?"
+
+  dd if=${uboot_ldr} of=${uboot_dev} bs=${uboot_bs} seek=${uboot_sk}
+  
+  echo "The bootloader as been updated."
+  
+}
+
+function updateFEX {
+  echo -e "FEX Update\n"
+  if [ -f "${uboot_fex}" ]; then
+    echo " FEX Source : ${uboot_fex}"
+    echo " FEX Binary : ${uboot_bin}"
+    echo -e "MAC Address : ${uboot_mac}\n"
+  else
+    echo "FEX Source ${uboot_fex} not found."
+    exit 1
+  fi
+  
+  yesNo "About to update ${uboot_bin} with ${uboot_fex}, are your sure?"
+  
+  cp ${uboot_fex} ${uboot_bin}.tmp
+  echo -e "\n[dynamic]\nMAC = \"${uboot_mac}\"\n" >> ${uboot_bin}.tmp
+  fex2bin ${uboot_bin}.tmp ${uboot_bin}
+  rm -f ${uboot_bin}.tmp
+
+  echo "FEX file compiled and installed."
+}
+
+if ! [ -z "${update_ldr}" ]; then
+  updateLoader
+fi
+
+if ! [ -z "${update_fex}" ]; then
+  updateFEX
+fi

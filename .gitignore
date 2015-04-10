@@ -12,3 +12,7 @@ Makefile.in
 /install-sh
 /missing
 /stamp-h1
+/U-Boot/u-boot/
+/U-Boot/sunxi-boards/
+/U-Boot/u-boot-sunxi/
+/Sunxi-Tools/sunxi-tools/

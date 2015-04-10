@@ -1,0 +1,54 @@
+.TH armstrap-u-boot-installer 8 "April 5, 2015" "" "armstrap-u-boot-installer"
+
+.SH NAME
+armstrap-u-boot-installer \- Update or install the bootloader used by armStrap
+
+.SH SYNOPSIS
+.B armstrap-u-boot-installer
+.RI [ options ]
+.br
+
+.SH DESCRIPTION
+The
+.B armstrap-u-boot-installer
+is used to install or update the bootloader used by armStrap on sunxi devices.
+.PP
+\fBarmstrap-u-boot-installer\fP can also be used to update the Fex script on theses devices too.
+
+.SH OPTIONS
+.SS "BootLoader Updater"
+.B
+.IP -u
+Update the device bootloader.
+.B
+.IP -U <FILE>
+Specify the bootloader to use.
+.B
+.IP -D <FILE>
+Specify the device to update
+.B
+.IP -B <SIZE>
+ Specify the block size used for writting
+.B
+.IP -S <SEEK>
+ Specify the seek used for writting
+.SS "FEX Updater"
+.B
+.IP -f
+Update the device fex script
+.B
+.IP -F <FILE>
+Specify the fex script to use
+.B
+.IP -N <FILE>
+Specify the compiled fex script file
+.B
+.IP -M <MAC> 
+Specify the mac address of the device
+.SS "Other Options"
+.B
+.IP -y
+Do not ask for confirmation
+.SH "SEE ALSO"
+.SS "armstrap-u-boot"
+ Details the avalable bootloaders.

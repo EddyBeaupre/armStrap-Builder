@@ -1,0 +1,11 @@
+#!/bin/bash -e
+
+if [ -x /etc/kernel/postinst.d/initramfs-tools ]; then
+  echo "Disabling /etc/kernel/postinst.d/initramfs-tools."
+  chmod -x /etc/kernel/postinst.d/initramfs-tools
+fi
+
+if [ -x /etc/kernel/postrm.d/initramfs-tools ]; then
+  echo "Disabling /etc/kernel/postrm.d/initramfs-tools."
+  chmod -x /etc/kernel/postrm.d/initramfs-tools
+fi

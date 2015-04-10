@@ -1,0 +1,115 @@
+#!/bin/bash
+
+if [ $# -ne 1 ]; then
+  echo "Usage : $(basename $0) <cubieboard|cubieboard2|cubietruck>"
+  echo ""
+  exit 0
+fi
+
+function kernelName {
+  local tmp=$(cat /boot/uEnv.txt | fgrep "kernel=uImage")
+  tmp_IFS="${IFS}"
+  IFS="="
+  tmp=(${tmp})
+  tmp=${tmp[1]}
+  IFS="${IFS}"
+  printf "%s" $tmp
+}
+
+function excludeRsync {
+  local tmp="$(/bin/mktemp --tmpdir nand-installer_excludes.XXXXXXXXXX)"
+  cat >> "${tmp}" <<EOF
+/dev/*
+/proc/*
+/sys/*
+/media/*
+/mnt/*
+/run/*
+/tmp/*
+/var/swap
+EOF
+  printf "%s" $tmp
+}
+
+function logIt {
+  local tmp="$(date '+%y/%m/%d %T')"
+  printf "[%.17s] %s\n" "${tmp}" "${@}"
+  printf "[%.17s] %s\n" "${tmp}" "${@}" >> ${nand_installer_logfile} 2>&1  
+}
+
+function getBootLoader {
+  local tmp="$(curl -s https://archive.armstrap.net/.nanda.php?board=${1})"
+  printf "%s" $tmp
+}
+
+nand_installer_logfile="$(/bin/mktemp --tmpdir nand-installer_log.XXXXXXXXXX)"
+nand_installer_exclude="$(excludeRsync)"
+nand_installer_kernel="$(kernelName)"
+nand_installer_bootloader="$(getBootLoader ${1})"
+
+if [ -z "${nand_installer_bootloader}" ]; then
+  logIt "Unable to find the NAND bootloader for ${1}"
+  rm -f ${nand_installer_logfile}
+  rm -f ${nand_installer_exclude}
+  exit 1
+fi
+
+echo "$(basename ${0}) : installing on ${1}"
+
+logIt "Creating nand partitions"
+if [ "${1}" == "cubieboard" ]; then
+  logIt "Using A10 partition scheme"
+  /usr/bin/yes | /usr/bin/nand-part -f a10 /dev/nand 32768 'bootloader 131072' 'boot 8192' 'rootfs 0' >> ${nand_installer_logfile} 2>&1
+  echo -e 'ANDROID!\0\0\0\0\0\0\0\0\c' > /dev/nandb
+else
+  logIt "Using A20 partition scheme"
+  /usr/bin/yes | /usr/bin/nand-part -f a20 /dev/nand 32768 'bootloader 131072' 'rootfs 0' >> ${nand_installer_logfile} 2>&1
+fi
+logIt "Formatting root filesystem (ext4)"
+if [ "${1}" == "cubieboard" ]; then
+  logIt "Root filesystem is nandc"
+  /sbin/mkfs.ext4 /dev/nandc >> ${nand_installer_logfile} 2>&1
+  /bin/mount /dev/nandc /mnt >> ${nand_installer_logfile} 2>&1
+else
+  logIt "Root filesystem is nandb"
+  /sbin/mkfs.ext4 /dev/nandb >> ${nand_installer_logfile} 2>&1
+  /bin/mount /dev/nandb /mnt >> ${nand_installer_logfile} 2>&1
+
+fi
+logIt "Copying root filesystem"
+/usr/bin/apt-get -qy clean >> ${nand_installer_logfile} 2>&1
+/usr/bin/rsync -avc --exclude-from=${nand_installer_exclude} / /mnt >> ${nand_installer_logfile} 2>&1
+logIt "Formatting bootloader (vfat)"
+/sbin/mkfs.vfat /dev/nanda >> ${nand_installer_logfile} 2>&1
+logIt "Installing bootloader"
+/bin/mkdir -p /mnt/boot/bootloader >> ${nand_installer_logfile} 2>&1
+/bin/mount /dev/nanda /mnt/boot/bootloader >> ${nand_installer_logfile} 2>&1
+/usr/bin/wget --progress=dot:mega -a /mnt/var/log/nand-installer.log -O - ${nand_installer_bootloader} | /bin/tar -xJ -C "/mnt/boot/bootloader" >> ${nand_installer_logfile} 2>&1
+/bin/cp -v /mnt/boot/${nand_installer_kernel} /mnt/boot/bootloader/uImage >> ${nand_installer_logfile} 2>&1
+/bin/cp -v /mnt/boot/script.bin /mnt/boot/bootloader/script.bin >> ${nand_installer_logfile} 2>&1
+logIt "Configuring fstab"
+/bin/mv -fv "/mnt/etc/fstab" "/mnt/etc/fstab.bak" >> ${nand_installer_logfile} 2>&1
+cat >> "/mnt/etc/fstab" <<EOF
+#<file system>	<mount point>		<type>	<options>		<dump>	<pass>  
+/dev/nanda	/boot/bootloader	vfat	defaults		0	0
+EOF
+if [ "${1}" == "cubieboard" ]; then
+cat >> "/mnt/etc/fstab" <<EOF
+/dev/nandc	/			ext4	defaults,noatime	0	1
+EOF
+else
+cat >> "/mnt/etc/fstab" <<EOF
+/dev/nandb	/			ext4	defaults,noatime	0	1
+EOF
+fi
+logIt "Cleaning up"
+/usr/sbin/chroot /mnt /usr/bin/apt-get -qy purge dphys-swapfile >> ${nand_installer_logfile} 2>&1
+/usr/sbin/chroot /mnt /usr/bin/apt-get -qy autoremove >> ${nand_installer_logfile} 2>&1
+/bin/sync >> ${nand_installer_logfile} 2>&1
+/bin/umount /mnt/boot/bootloader >> ${nand_installer_logfile} 2>&1
+cp ${nand_installer_logfile} /mnt/var/log/nand-installer.log
+mv ${nand_installer_logfile} /var/log/nand-installer.log
+nand_installer_logfile=/var/log/nand-installer.log
+rm -f ${nand_installer_exclude}
+/bin/umount /mnt
+logIt "All done, shutdown and remove SD card to boot on NAND."

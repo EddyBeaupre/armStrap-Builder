@@ -1,0 +1,22 @@
+#!/bin/bash -e
+
+datarootdir=#datarootdir#
+package_name=armStrap-#subdir#
+
+function replaceValue {
+  local tmpfile="$(mktemp ${1}.XXXXXXXXXX)"
+  
+  sed 's,^'"${2}"'.*,'"${2}=${3}," < "${1}" > "${tmpfile}"
+  rm -f "${1}"
+  mv "${tmpfile}" "${1}"
+}
+
+if [ -f "/etc/armStrap.conf" ]; then
+  if [ -d "${datarootdir}/${package_name}" ]; then
+    replaceValue "/etc/armStrap.conf" "uboot_dir" "${datarootdir}/${package_name}"
+  else
+    echo "Directory ${datarootdir}/${package_name} does not exist."
+  fi
+else
+  echo "Configuration file /etc/armStrap.conf does not exist."
+fi
