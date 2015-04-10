@@ -11,7 +11,7 @@ U-Boot-clean:
 	if [ -d $(abs_srcdir)/u-boot-sunxi ]; then $(MAKE) -C $(abs_srcdir)/u-boot-sunxi CROSS_COMPILE=$(CROSS_COMPILE) distclean; fi
 	-rm -f U-Boot
 
-U-Boot-rm:
+git-rm:
 	if [ -d $(abs_srcdir)/u-boot ]; then rm -rf $(abs_srcdir)/u-boot; fi
 	if [ -d $(abs_srcdir)/u-boot-sunxi ]; then rm -rf $(abs_srcdir)/u-boot-sunxi; fi
 	if [ -d $(abs_srcdir)/sunxi-boards ]; then rm -rf $(abs_srcdir)/sunxi-boards; fi
@@ -152,3 +152,8 @@ clean-local: Cubieboard-clean Hackberry-clean Cubieboard2-clean A70x-clean Cubie
 	if [ -d $(abs_srcdir)/u-boot-sunxi-build ]; then rm -rf $(abs_srcdir)/u-boot-sunxi-build; fi
 	if [ -d $(abs_srcdir)/build/DEBIAN ]; then rm -rf $(abs_srcdir)/build/DEBIAN; fi 
 	if [ -d $(abs_srcdir)/debian ]; then rm -rf $(abs_srcdir)/debian; fi
+
+clean-git:
+	if [ -d $(abs_srcdir)/u-boot ]; then rm -rf $(abs_srcdir)/u-boot; fi
+	if [ -d $(abs_srcdir)/u-boot-sunxi ]; then rm -rf $(abs_srcdir)/u-boot-sunxi; fi
+	if [ -d $(abs_srcdir)/sunxi-boards ]; then rm -rf $(abs_srcdir)/sunxi-boards; fi
