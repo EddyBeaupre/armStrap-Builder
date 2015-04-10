@@ -1,6 +1,9 @@
 version:
 	${SHELL} $(abs_top_srcdir)/makever $(abs_srcdir)/.version
 
+version-clean:
+	-rm -f $(abs_srcdir)/.version
+
 all-local: version
 	@echo "------------------------------------------"
 	@echo "--- Building GenSSHKeys Debian Package ---"

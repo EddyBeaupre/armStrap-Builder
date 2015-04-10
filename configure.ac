@@ -7,10 +7,10 @@ AC_PROG_CC()
 AC_PROG_INSTALL()
 AC_PROG_MAKE_SET()
 
-AC_ARG_VAR([CROSS_COMPILE], [Specify the host cross-compiler suite to use (CROSS_COMPILE=arm-linux-gnueabihf-)])
-AC_ARG_VAR([ARCH], [Specify the host architecture (ARM=arm)])
-AC_ARG_VAR([KBUILD_DEBARCH], [Specify the debian host architecture (KBUILD_DEBARCH=armhf)])
-AC_ARG_VAR([MAKE_PARAMS], [Specify additional parameters to pass to make (MAKE_PARAMS=-j24)])
+AC_ARG_VAR([CROSS_COMPILE], [Specify the host cross-compiler suite to use, e.g. CROSS_COMPILE=arm-linux-gnueabihf-])
+AC_ARG_VAR([ARCH], [Specify the host architecture, e.g. ARM=arm])
+AC_ARG_VAR([KBUILD_DEBARCH], [Specify the debian host architecture, e.g. KBUILD_DEBARCH=armhf])
+AC_ARG_VAR([MAKE_PARAMS], [Specify additional parameters to pass to make, e.g. MAKE_PARAMS=-j24])
 
 AC_CHECK_PROG([HAVE_GIT], [git], [yes], [no])
 if test "x${HAVE_GIT}" = "xno"; then AC_MSG_ERROR([Please install GIT before continuing]); fi

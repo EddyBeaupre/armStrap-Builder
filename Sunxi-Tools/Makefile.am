@@ -11,15 +11,15 @@ all-local: version
 	@echo "-------------------------------------------"
 	@echo "--- Building Sunxi-Tools Debian Package ---"
 	@echo "-------------------------------------------"
-	if [ -d $(abs_srcdir)/sunxi-tools ]; then cd $(abs_srcdir)/sunxi-tools && git pull; else git clone https://github.com/linux-sunxi/sunxi-tools.git $(abs_srcdir)/sunxi-tools/; fi
+	if [ -d $(abs_top_srcdir)/src/sunxi-tools ]; then cd $(abs_top_srcdir)/src/sunxi-tools && git pull; else git clone https://github.com/linux-sunxi/sunxi-tools.git $(abs_top_srcdir)/src/sunxi-tools/; fi
 	if ! [ -d $(abs_srcdir)/build$(bindir) ]; then $(MKDIR_P) $(abs_srcdir)/build$(bindir); fi
 	if ! [ -d $(abs_srcdir)/build/DEBIAN ]; then $(MKDIR_P) $(abs_srcdir)/build/DEBIAN; fi
 	if ! [ -d $(abs_srcdir)/build$(mandir)/man8 ]; then $(MKDIR_P) $(abs_srcdir)/build$(mandir)/man8; fi
-	$(CC) -g -O0 -Wall -Wextra -std=c99 -D_POSIX_C_SOURCE=200112L -I$(abs_srcdir)/sunxi-tools/include/  -o $(abs_srcdir)/build$(bindir)/fexc $(abs_srcdir)/sunxi-tools/fexc.c $(abs_srcdir)/sunxi-tools/script.c $(abs_srcdir)/sunxi-tools/script_uboot.c $(abs_srcdir)/sunxi-tools/script_bin.c $(abs_srcdir)/sunxi-tools/script_fex.c 
-	$(CC) -g -O0 -Wall -Wextra -std=c99 -D_POSIX_C_SOURCE=200112L -I$(abs_srcdir)/sunxi-tools/include/ -c -o $(abs_srcdir)/sunxi-tools/nand-part-main.o $(abs_srcdir)/sunxi-tools/nand-part-main.c
-	$(CC) -g -O0 -Wall -Wextra -std=c99 -D_POSIX_C_SOURCE=200112L -I$(abs_srcdir)/sunxi-tools/include/ -c -o $(abs_srcdir)/sunxi-tools/nand-part-a10.o $(abs_srcdir)/sunxi-tools/nand-part.c -D A10
-	$(CC) -g -O0 -Wall -Wextra -std=c99 -D_POSIX_C_SOURCE=200112L -I$(abs_srcdir)/sunxi-tools/include/ -c -o $(abs_srcdir)/sunxi-tools/nand-part-a20.o $(abs_srcdir)/sunxi-tools/nand-part.c -D A20
-	$(CC) -o $(abs_srcdir)/build$(bindir)/nand-part $(abs_srcdir)/sunxi-tools/nand-part-main.o $(abs_srcdir)/sunxi-tools/nand-part-a10.o $(abs_srcdir)/sunxi-tools/nand-part-a20.o
+	$(CC) -g -O0 -Wall -Wextra -std=c99 -D_POSIX_C_SOURCE=200112L -I$(abs_top_srcdir)/src/sunxi-tools/include/  -o $(abs_srcdir)/build$(bindir)/fexc $(abs_top_srcdir)/src/sunxi-tools/fexc.c $(abs_top_srcdir)/src/sunxi-tools/script.c $(abs_top_srcdir)/src/sunxi-tools/script_uboot.c $(abs_top_srcdir)/src/sunxi-tools/script_bin.c $(abs_top_srcdir)/src/sunxi-tools/script_fex.c 
+	$(CC) -g -O0 -Wall -Wextra -std=c99 -D_POSIX_C_SOURCE=200112L -I$(abs_top_srcdir)/src/sunxi-tools/include/ -c -o $(abs_top_srcdir)/src/sunxi-tools/nand-part-main.o $(abs_top_srcdir)/src/sunxi-tools/nand-part-main.c
+	$(CC) -g -O0 -Wall -Wextra -std=c99 -D_POSIX_C_SOURCE=200112L -I$(abs_top_srcdir)/src/sunxi-tools/include/ -c -o $(abs_top_srcdir)/src/sunxi-tools/nand-part-a10.o $(abs_top_srcdir)/src/sunxi-tools/nand-part.c -D A10
+	$(CC) -g -O0 -Wall -Wextra -std=c99 -D_POSIX_C_SOURCE=200112L -I$(abs_top_srcdir)/src/sunxi-tools/include/ -c -o $(abs_top_srcdir)/src/sunxi-tools/nand-part-a20.o $(abs_top_srcdir)/src/sunxi-tools/nand-part.c -D A20
+	$(CC) -o $(abs_srcdir)/build$(bindir)/nand-part $(abs_top_srcdir)/src/sunxi-tools/nand-part-main.o $(abs_top_srcdir)/src/sunxi-tools/nand-part-a10.o $(abs_top_srcdir)/src/sunxi-tools/nand-part-a20.o
 	echo "ln -s $(bindir)/fexc $(bindir)/fex2bin" > $(abs_srcdir)/build/DEBIAN/postinst
 	echo "ln -s $(bindir)/fexc $(bindir)/bin2fex" >> $(abs_srcdir)/build/DEBIAN/postinst
 	echo "ln -s $(mandir)/man8/armstrap-sunxi-tools.8.gz $(mandir)/man8/fexc.8.gz" >> $(abs_srcdir)/build/DEBIAN/postinst
@@ -41,8 +41,7 @@ all-local: version
 clean-local:
 	if [ -d $(abs_srcdir)/build ]; then rm -rf $(abs_srcdir)/build; fi 
 	if [ -d $(abs_srcdir)/debian ]; then rm -rf $(abs_srcdir)/debian; fi
-	-rm -f $(abs_srcdir)/sunxi-tools/*.o
+	-rm -f $(abs_top_srcdir)/src/sunxi-tools/*.o
 
 clean-git:
-	if [ -d $(abs_srcdir)/sunxi-tools ]; then rm -rf $(abs_srcdir)/sunxi-tools; fi
-	
+	if [ -d $(abs_top_srcdir)/src/sunxi-tools ]; then rm -rf $(abs_top_srcdir)/src/sunxi-tools; fi
