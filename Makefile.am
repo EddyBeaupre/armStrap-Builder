@@ -1,5 +1,7 @@
 SUBDIRS = GenSSHKeys NAND-Installer Sunxi-Tools uImage-Installer U-Boot Kernels
 
+EXTRA_DIST=makedeb makever
+
 all-local:
 	if ! [ -d $(abs_top_srcdir)/src/linux ]; then $(MKDIR_P) $(abs_top_srcdir)/src/linux; fi
 
