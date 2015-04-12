@@ -1,7 +1,7 @@
-SUBDIRS = GenSSHKeys NAND-Installer Sunxi-Tools uImage-Installer U-Boot
+SUBDIRS = GenSSHKeys NAND-Installer Sunxi-Tools uImage-Installer U-Boot Kernels
 
 all-local:
-	if ! [ -d $(abs_top_srcdir)/src ]; then $(MKDIR_P) $(abs_top_srcdir)/src; fi
+	if ! [ -d $(abs_top_srcdir)/src/linux ]; then $(MKDIR_P) $(abs_top_srcdir)/src/linux; fi
 
 distclean-local:
 	-find ./ -name "*~" -type f -print0 | xargs -0 /bin/rm -f

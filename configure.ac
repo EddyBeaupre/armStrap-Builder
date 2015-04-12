@@ -1,6 +1,6 @@
 AC_PREREQ([2.69])
 AC_INIT([armStrap-Builder], [1.0-1], [https://github.com/EddyBeaupre/armStrap-Builder/])
-AM_INIT_AUTOMAKE()
+AM_INIT_AUTOMAKE(-Wno-portability)
 
 AC_PROG_MKDIR_P()
 AC_PROG_CC()
@@ -31,4 +31,4 @@ if test "x${host_alias}" = "xarm-linux-gnueabi"; then
   fi
 fi
 
-AC_OUTPUT(Makefile GenSSHKeys/Makefile NAND-Installer/Makefile Sunxi-Tools/Makefile uImage-Installer/Makefile U-Boot/Makefile)
+AC_OUTPUT(Makefile GenSSHKeys/Makefile NAND-Installer/Makefile Sunxi-Tools/Makefile uImage-Installer/Makefile U-Boot/Makefile Kernels/Makefile)
