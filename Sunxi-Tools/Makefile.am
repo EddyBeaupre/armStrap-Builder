@@ -1,13 +1,14 @@
-git-rm:
-	
+EXTRA_DIST=armstrap-sunxi-tools.8
+
+.PHONY: version clean-git clean-version
 
 version:
 	${SHELL} $(abs_top_srcdir)/makever $(abs_srcdir)/.version
 
-version-clean:
+clean-version:
 	-rm -f $(abs_srcdir)/.version
 
-all-local: version
+Sunxi-Tools: version
 	@echo "-------------------------------------------"
 	@echo "--- Building Sunxi-Tools Debian Package ---"
 	@echo "-------------------------------------------"
@@ -37,11 +38,24 @@ all-local: version
 	gzip -9 -c armstrap-sunxi-tools.8 > $(abs_srcdir)/build$(mandir)/man8/armstrap-sunxi-tools.8.gz
 	${SHELL} $(abs_top_srcdir)/makedeb -n armStrap-$(subdir) -v @$(abs_srcdir)/.version -u $(PACKAGE_BUGREPORT) -b $(abs_srcdir)/build -p $(prefix) -h $(host_alias) -l " This package provide a subset of the sunxi-tools used by armStrap."
 	mv *.deb $(abs_top_srcdir)
+	@touch Sunxi-Tools
 
-clean-local:
-	if [ -d $(abs_srcdir)/build ]; then rm -rf $(abs_srcdir)/build; fi 
-	if [ -d $(abs_srcdir)/debian ]; then rm -rf $(abs_srcdir)/debian; fi
-	-rm -f $(abs_top_srcdir)/src/sunxi-tools/*.o
+all-local: Sunxi-Tools
 
 clean-git:
 	if [ -d $(abs_top_srcdir)/src/sunxi-tools ]; then rm -rf $(abs_top_srcdir)/src/sunxi-tools; fi
+
+clean-local:
+	rm -f Sunxi-Tools
+	-rm -f $(abs_top_srcdir)/src/sunxi-tools/*.o
+	if [ -d $(abs_srcdir)/build ]; then rm -rf $(abs_srcdir)/build; fi 
+	if [ -d $(abs_srcdir)/debian ]; then rm -rf $(abs_srcdir)/debian; fi
+
+help:
+	@echo -e "\narmStrap Sunxi-Tools."
+	@echo -e "\nCleaning targets:"
+	@echo "  clean            - Remove most generated files but keep the config."
+	@echo "  clean-version    - Remove packages version information."
+	@echo "  distclean        - Remove all generated files + config + various backup files."
+	@echo -e "\nBuilding targets:"
+	@echo -e "                   - Build everything.\n"

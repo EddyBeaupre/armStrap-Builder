@@ -1,22 +1,21 @@
+EXTRA_DIST=armstrap-u-boot.8  armstrap-u-boot-installer  armstrap-u-boot-installer.8 postinst.in
+
 .NOTPARALLEL:
 
-U-Boot:
+.PHONY: Cubieboard-clean Hackberry-clean Cubieboard2-clean A70x-clean Cubietruck-clean U-Boot-clean version clean-version clean-git
+
+U-Boot-Git:
 	if [ -d $(abs_top_srcdir)/src/u-boot ]; then cd $(abs_top_srcdir)/src/u-boot && git pull; else git clone git://git.denx.de/u-boot.git $(abs_top_srcdir)/src/u-boot; fi
 	if [ -d $(abs_top_srcdir)/src/u-boot-sunxi ]; then cd $(abs_top_srcdir)/src/u-boot && git pull; else git clone https://github.com/linux-sunxi/u-boot-sunxi.git $(abs_top_srcdir)/src/u-boot-sunxi; fi
 	if [ -d $(abs_top_srcdir)/src/sunxi-boards ]; then cd $(abs_top_srcdir)/src/sunxi-boards/ && git pull; else git clone https://github.com/linux-sunxi/sunxi-boards.git $(abs_top_srcdir)/src/sunxi-boards; fi
-	@touch U-Boot
+	@touch U-Boot-Git
 
-U-Boot-clean:
+U-Boot-Git-clean:
 	if [ -d $(abs_top_srcdir)/src/u-boot ]; then $(MAKE) -C $(abs_top_srcdir)/src/u-boot CROSS_COMPILE=$(CROSS_COMPILE) distclean; fi
 	if [ -d $(abs_top_srcdir)/src/u-boot-sunxi ]; then $(MAKE) -C $(abs_top_srcdir)/src/u-boot-sunxi CROSS_COMPILE=$(CROSS_COMPILE) distclean; fi
-	-rm -f U-Boot
+	-rm -f U-Boot-Git
 
-git-rm:
-	if [ -d $(abs_top_srcdir)/src/u-boot ]; then rm -rf $(abs_top_srcdir)/src/u-boot; fi
-	if [ -d $(abs_top_srcdir)/src/u-boot-sunxi ]; then rm -rf $(abs_top_srcdir)/src/u-boot-sunxi; fi
-	if [ -d $(abs_top_srcdir)/src/sunxi-boards ]; then rm -rf $(abs_top_srcdir)/src/sunxi-boards; fi
-	
-Cubieboard: U-Boot
+Cubieboard: U-Boot-Git
 	@echo "---------------------------"
 	@echo "--- Building Cubieboard ---"
 	@echo "---------------------------"
@@ -56,7 +55,7 @@ Hackberry-clean:
 	if [ -d $(abs_srcdir)/build/u-boot-sunxi$(datarootdir)/armStrap-$(subdir)/Hackberry ]; then rm -rf $(abs_srcdir)/build/u-boot-sunxi$(datarootdir)/armStrap-$(subdir)/Hackberry; fi
 	-rm -f Hackberry
 
-Cubieboard2: U-Boot
+Cubieboard2: U-Boot-Git
 	@echo "----------------------------"
 	@echo "--- Building Cubieboard2 ---"
 	@echo "----------------------------"
@@ -96,7 +95,7 @@ A70x-clean:
 	if [ -d $(abs_srcdir)/build/u-boot-sunxi$(datarootdir)/armStrap-$(subdir)/A70x ]; then rm -rf $(abs_srcdir)/build/u-boot-sunxi$(datarootdir)/armStrap-$(subdir)/A70x; fi
 	-rm -f A70x
 
-Cubietruck: U-Boot
+Cubietruck: U-Boot-Git
 	@echo "---------------------------"
 	@echo "--- Building Cubietruck ---"
 	@echo "---------------------------"
@@ -122,10 +121,10 @@ Cubietruck-clean:
 version:
 	${SHELL} $(abs_top_srcdir)/makever $(abs_srcdir)/.version
 	
-version-clean:
+clean-version:
 	-rm -f $(abs_srcdir)/.version
-
-all-local: Cubieboard Hackberry Cubieboard2 A70x Cubietruck version
+	
+U-Boot: version Cubieboard Hackberry Cubieboard2 A70x Cubietruck
 	if ! [ -d $(abs_srcdir)/build/u-boot/DEBIAN ]; then $(MKDIR_P) $(abs_srcdir)/build/u-boot/DEBIAN; fi
 	if ! [ -d $(abs_srcdir)/build/u-boot-sunxi/DEBIAN ]; then $(MKDIR_P) $(abs_srcdir)/build/u-boot-sunxi/DEBIAN; fi
 	$(INSTALL) postinst.in $(abs_srcdir)/build/u-boot/DEBIAN/postinst
@@ -146,8 +145,12 @@ all-local: Cubieboard Hackberry Cubieboard2 A70x Cubietruck version
 	@${SHELL} $(abs_top_srcdir)/makedeb -n armStrap-$(subdir) -v @.version -u $(PACKAGE_BUGREPORT) -b $(abs_srcdir)/build/u-boot -p $(prefix) -h $(host_alias) -c armstrap-$(subdir)-sunxi -d "armstrap-sunxi-tools (>= 20150410)" -l " This package contain all the bootloaders avalable to\n armStrap. For more information check the armStrap project\n repository."
 	@${SHELL} $(abs_top_srcdir)/makedeb -n armStrap-$(subdir)-sunxi -v @.version -u $(PACKAGE_BUGREPORT) -b $(abs_srcdir)/build/u-boot-sunxi -p $(prefix) -h $(host_alias) -c armstrap-$(subdir) -d "armstrap-sunxi-tools (>= 20150410)" -l " This package contain all the bootloaders avalable to\n armStrap. For more information check the armStrap project\n repository."
 	mv *.deb $(abs_top_srcdir)
+	@touch U-Boot
 
-clean-local: Cubieboard-clean Hackberry-clean Cubieboard2-clean A70x-clean Cubietruck-clean U-Boot-clean
+all-local: U-Boot
+	
+clean-local: Cubieboard-clean Hackberry-clean Cubieboard2-clean A70x-clean Cubietruck-clean U-Boot-Git-clean
+	-rm -f U-Boot
 	if [ -d $(abs_srcdir)/build ]; then rm -rf $(abs_srcdir)/build; fi
 	if [ -d $(abs_srcdir)/debian ]; then rm -rf $(abs_srcdir)/debian; fi
 
@@ -155,3 +158,12 @@ clean-git:
 	if [ -d $(abs_top_srcdir)/src/u-boot ]; then rm -rf $(abs_top_srcdir)/src/u-boot; fi
 	if [ -d $(abs_top_srcdir)/src/u-boot-sunxi ]; then rm -rf $(abs_top_srcdir)/src/u-boot-sunxi; fi
 	if [ -d $(abs_top_srcdir)/src/sunxi-boards ]; then rm -rf $(abs_top_srcdir)/src/sunxi-boards; fi
+
+help:
+	@echo -e "\narmStrap U-Boot."
+	@echo -e "\nCleaning targets:"
+	@echo "  clean            - Remove most generated files but keep the config."
+	@echo "  clean-version    - Remove packages version information."
+	@echo "  distclean        - Remove all generated files + config + various backup files."
+	@echo -e "\nBuilding targets:"
+	@echo -e "                   - Build everything.\n"

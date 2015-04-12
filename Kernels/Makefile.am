@@ -1,3 +1,5 @@
+EXTRA_DIST = configs/armStrap_sun4i_defconfig  configs/armStrap_sun4i-stage_defconfig  configs/armStrap_sun7i-ct_defconfig  configs/armStrap_sun7i_defconfig  configs/armStrap_sun7i-stage_defconfig
+
 MAKE_CMD = CC=$(CC) KBUILD_DEBARCH=$(KBUILD_DEBARCH) dpkg-architecture -t$(host_alias) -c $(MAKE) $(MAKE_PARAMS) ARCH=$(ARCH) CROSS_COMPILE=$(CROSS_COMPILE)
 MAKE_CLN = $(MAKE_CMD) -C $(KERNEL_SRC) distclean
 MAKE_KNL = $(MAKE_CMD) -C $(KERNEL_SRC) EXTRAVERSION=-$(KERNEL_CNF)
@@ -8,14 +10,14 @@ SOURCE_LST = sunxi/https\://github.com/linux-sunxi/linux-sunxi.git sunxi-ct/http
 SOURCE_DIR = $(BUILDER_ROOT)/`echo -n "$@" | awk -F '/' '{print $$1}'`
 SOURCE_GIT = `echo -n "$@" | sed -e 's/^\([^\/]*\)\///'`
 
-KERNEL_LST = sunxi/sunxi-3.4/sun4i sunxi/sunxi-3.4/sun7i sunxi/stage_sunxi-3.4/sun4i sunxi/stage_sunxi-3.4/sun7i sunxi-ct/sunxi-3.4/sun7i-ct sunxi-next/master/sunxi-next mainline/master/mainline
+KERNEL_LST = sunxi/sunxi-next/sunxi mainline/master/sunxi
 KERNEL_SRC = $(BUILDER_ROOT)/`echo -n "$@" | awk -F '/' '{print $$1}'`
 KERNEL_BRN = `echo -n "$@" | awk -F '/' '{print $$2}' | sed -e 's/_/\//'`
 KERNEL_CNF = `echo -n "$@" | awk -F '/' '{print $$3}'`
 
-.PHONY: sources $(SOURCE_LST)
+.PHONY: kernels-git $(SOURCE_LST)
 
-sources: $(SOURCE_LST)
+kernels-git: $(SOURCE_LST)
 
 $(SOURCE_LST):
 	@echo "-------------------[ Downloading/Updating kernel sources ]-------------------"
@@ -26,9 +28,23 @@ $(SOURCE_LST):
 
 git-rm:
 
-.PHONY: kernels $(KERNEL_LST)
+PHONY: kernels-builder $(KERNEL_LST)
 
-kernels: $(KERNEL_LST)
+kernels-builder: $(KERNEL_LST)
+
+sun4i: sunxi/sunxi-3.4/sun4i
+
+sun7i: sunxi/sunxi-3.4/sun7i
+
+sun4i-stage: sunxi/stage_sunxi-3.4/sun4i
+
+sun7i-stage:  sunxi/stage_sunxi-3.4/sun7i
+
+sun7i-ct: sunxi-ct/sunxi-3.4/sun7i-ct
+
+sunxi-next: sunxi/sunxi-next/sunxi
+
+mainline: mainline/master/sunxi
 
 $(KERNEL_LST):
 	@echo "-------------------------[ Building kernel package ]-------------------------"
@@ -70,8 +86,29 @@ version:
 
 version-clean:
 
-all-local: sources kernels
+Kernels: kernels-git kernels-builder
+	@touch Kernels
+
+all-local: Kernels
 
 clean-local:
+	-rm -f @touch Kernels
 
-distclean-local:
+clean-git:
+	if [ -d $(abs_top_srcdir)/src/linux ]; then rm -rf $(abs_top_srcdir)/src/linux; fi
+
+help:
+	@echo -e "\narmStrap Kernels builder."
+	@echo -e "\nCleaning targets:"
+	@echo "  clean            - Remove most generated files but keep the config."
+	@echo "  distclean        - Remove all generated files + config + various backup files."
+	@echo -e "\nBuilding targets:"
+	@echo "                   - Build everything."
+	@echo "  sun4i            - Build sun4i kernel."
+	@echo "  sun7i            - Build sun7i kernel."
+	@echo "  sun4i-stage      - Build sun4i-stage kernel."
+	@echo "  sun7i-stage      - Build sun7i-stage kernel."
+	@echo "  sun7i-ct         - Build sun7i-ct kernel."
+	@echo "  sunxi-next       - Build sunxi-next kernel."
+	@echo -e "  mainline         - Build mainline kernel.\n"
+
