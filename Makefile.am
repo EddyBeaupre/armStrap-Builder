@@ -41,13 +41,16 @@ uImage-Installer:
 all-local:
 	if ! [ -d $(abs_top_srcdir)/src/linux ]; then $(MKDIR_P) $(abs_top_srcdir)/src/linux; fi
 
-distclean-local:
+
+distclean-local: clean-version
+	
 	-find ./ -name "*~" -type f -print0 | xargs -0 /bin/rm -f
 	-find ./ -name ".*~" -type f -print0 | xargs -0 /bin/rm -f
 	-rm -f *.deb
 
 clean-version: 
-	for i in $(SUBDIRS); do $(MAKE) -C $$i clean-version; done
+	for i in $(SUBDIRS); do rm -f $$i/.version; done
+	
 
 clean-git:
 	if [ -d $(abs_top_srcdir)/src ]; then rm -rf $(abs_top_srcdir)/src; fi

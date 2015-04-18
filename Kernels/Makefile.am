@@ -10,7 +10,7 @@ SOURCE_LST = sunxi/https\://github.com/linux-sunxi/linux-sunxi.git sunxi-ct/http
 SOURCE_DIR = $(BUILDER_ROOT)/`echo -n "$@" | awk -F '/' '{print $$1}'`
 SOURCE_GIT = `echo -n "$@" | sed -e 's/^\([^\/]*\)\///'`
 
-KERNEL_LST = sunxi/sunxi-next/sunxi mainline/master/sunxi
+KERNEL_LST = sunxi/sunxi-3.4/sun4i sunxi/sunxi-3.4/sun7i sunxi/stage_sunxi-3.4/sun4i sunxi/stage_sunxi-3.4/sun7i sunxi-ct/sunxi-3.4/sun7i-ct sunxi/sunxi-next/sunxi-next mainline/master/mainline
 KERNEL_SRC = $(BUILDER_ROOT)/`echo -n "$@" | awk -F '/' '{print $$1}'`
 KERNEL_BRN = `echo -n "$@" | awk -F '/' '{print $$2}' | sed -e 's/_/\//'`
 KERNEL_CNF = `echo -n "$@" | awk -F '/' '{print $$3}'`
@@ -38,13 +38,13 @@ sun7i: sunxi/sunxi-3.4/sun7i
 
 sun4i-stage: sunxi/stage_sunxi-3.4/sun4i
 
-sun7i-stage:  sunxi/stage_sunxi-3.4/sun7i
+sun7i-stage: sunxi/stage_sunxi-3.4/sun7i
 
 sun7i-ct: sunxi-ct/sunxi-3.4/sun7i-ct
 
-sunxi-next: sunxi/sunxi-next/sunxi
+sunxi-next: sunxi/sunxi-next/sunxi-next
 
-mainline: mainline/master/sunxi
+mainline: mainline/master/mainline
 
 $(KERNEL_LST):
 	@echo "-------------------------[ Building kernel package ]-------------------------"
@@ -65,10 +65,11 @@ $(KERNEL_LST):
 	$(MAKE_KNL)
 	$(MAKE_KNL) deb-pkg
 	if [ -f $(KERNEL_SRC)/arch/arm/boot/dts/sun4i-a10.dtsi ]; then \
-		if [ -d $(abs_srcdir)/dtbs/boot ]; then rm -rf $(abs_srcdir)/dtbs/boot; fi; \
+		if [ -d $(abs_srcdir)/dtbs ]; then rm -rf $(abs_srcdir)/dtbs; fi; \
+		$(MKDIR_P) $(abs_srcdir)/dtbs; \
 		$(MAKE_KNL) INSTALL_PATH=$(abs_srcdir)/dtbs/boot dtbs dtbs_install; \
 		cd $(KERNEL_SRC); \
-		$(MAKE_CMD) -s EXTRAVERSION=-$(KERNEL_CNF) kernelversion > $(abs_srcdir)/kernel-dtbs-version; \
+		$(MAKE_CMD) -s EXTRAVERSION=-$(KERNEL_CNF) kernelrelease > $(abs_srcdir)/kernel-dtbs-version; \
 		cd $(abs_srcdir); \
 		echo "linux-dtbs-`cat $(abs_srcdir)/kernel-dtbs-version`" > $(abs_srcdir)/kernel-dtbs-name; \
 		${SHELL} $(abs_top_srcdir)/makedeb -n @$(abs_srcdir)/kernel-dtbs-name -v @$(abs_srcdir)/kernel-dtbs-version -u $(PACKAGE_BUGREPORT) -b $(abs_srcdir)/dtbs -p $(prefix) -h $(host_alias) -l " This package install the dtbs files for linux-kernel."; \
@@ -96,6 +97,8 @@ clean-local:
 
 clean-git:
 	if [ -d $(abs_top_srcdir)/src/linux ]; then rm -rf $(abs_top_srcdir)/src/linux; fi
+	
+clean-version:
 
 help:
 	@echo -e "\narmStrap Kernels builder."
