@@ -10,7 +10,7 @@ SOURCE_LST = sunxi/https\://github.com/linux-sunxi/linux-sunxi.git sunxi-ct/http
 SOURCE_DIR = $(BUILDER_ROOT)/`echo -n "$@" | awk -F '/' '{print $$1}'`
 SOURCE_GIT = `echo -n "$@" | sed -e 's/^\([^\/]*\)\///'`
 
-KERNEL_LST = sunxi/sunxi-3.4/sun4i sunxi/sunxi-3.4/sun7i sunxi/stage_sunxi-3.4/sun4i sunxi/stage_sunxi-3.4/sun7i sunxi-ct/sunxi-3.4/sun7i-ct sunxi/sunxi-next/sunxi-next mainline/master/mainline
+KERNEL_LST = sunxi/sunxi-3.4/sun4i sunxi/sunxi-3.4/sun7i sunxi/stage_sunxi-3.4/sun4i-stage sunxi/stage_sunxi-3.4/sun7i-stage sunxi-ct/sunxi-3.4/sun7i-ct sunxi/sunxi-next/sunxi-next mainline/master/sunxi
 KERNEL_SRC = $(BUILDER_ROOT)/`echo -n "$@" | awk -F '/' '{print $$1}'`
 KERNEL_BRN = `echo -n "$@" | awk -F '/' '{print $$2}' | sed -e 's/_/\//'`
 KERNEL_CNF = `echo -n "$@" | awk -F '/' '{print $$3}'`
@@ -36,15 +36,15 @@ sun4i: sunxi/sunxi-3.4/sun4i
 
 sun7i: sunxi/sunxi-3.4/sun7i
 
-sun4i-stage: sunxi/stage_sunxi-3.4/sun4i
+sun4i-stage: sunxi/stage_sunxi-3.4/sun4i-stage
 
-sun7i-stage: sunxi/stage_sunxi-3.4/sun7i
+sun7i-stage: sunxi/stage_sunxi-3.4/sun7i-stage
 
 sun7i-ct: sunxi-ct/sunxi-3.4/sun7i-ct
 
 sunxi-next: sunxi/sunxi-next/sunxi-next
 
-mainline: mainline/master/mainline
+mainline: mainline/master/sunxi
 
 $(KERNEL_LST):
 	@echo "-------------------------[ Building kernel package ]-------------------------"
@@ -62,25 +62,29 @@ $(KERNEL_LST):
 		$(MAKE_KNL) $(KERNEL_CNF)_defconfig; \
 		sed -i "s/CONFIG_LOCALVERSION_AUTO=y/# CONFIG_LOCALVERSION_AUTO is not set/" $(KERNEL_SRC)/.config; \
 	fi
+	@$(MAKE_KNL) -s kernelrelease > $(abs_srcdir)/kernel-version;
 	$(MAKE_KNL)
-	$(MAKE_KNL) deb-pkg
+	if [ -d $(abs_srcdir)/dtbs ]; then rm -rfv $(abs_srcdir)/dtbs; fi;
+	if [ -d $(abs_srcdir)/debian ]; then rm -rfv $(abs_srcdir)/debian; fi;
 	if [ -f $(KERNEL_SRC)/arch/arm/boot/dts/sun4i-a10.dtsi ]; then \
-		if [ -d $(abs_srcdir)/dtbs ]; then rm -rf $(abs_srcdir)/dtbs; fi; \
 		$(MKDIR_P) $(abs_srcdir)/dtbs; \
-		$(MAKE_KNL) INSTALL_PATH=$(abs_srcdir)/dtbs/boot dtbs dtbs_install; \
-		cd $(KERNEL_SRC); \
-		$(MAKE_CMD) -s EXTRAVERSION=-$(KERNEL_CNF) kernelrelease > $(abs_srcdir)/kernel-dtbs-version; \
-		cd $(abs_srcdir); \
-		echo "linux-dtbs-`cat $(abs_srcdir)/kernel-dtbs-version`" > $(abs_srcdir)/kernel-dtbs-name; \
-		${SHELL} $(abs_top_srcdir)/makedeb -n @$(abs_srcdir)/kernel-dtbs-name -v @$(abs_srcdir)/kernel-dtbs-version -u $(PACKAGE_BUGREPORT) -b $(abs_srcdir)/dtbs -p $(prefix) -h $(host_alias) -l " This package install the dtbs files for linux-kernel."; \
-		if [ -f $(abs_srcdir)/kernel-dtbs-name ]; then rm -f kernel-dtbs-name; fi; \
-		if [ -f $(abs_srcdir)/kernel-dtbs-version ]; then rm -f kernel-dtbs-version; fi; \
-		if [ -d $(abs_srcdir)/dtbs ]; then rm -rf $(abs_srcdir)/dtbs; fi; \
-		if [ -d $(abs_srcdir)/debian ]; then rm -rf $(abs_srcdir)/debian; fi; \
-		mv $(abs_srcdir)/*.deb $(abs_top_srcdir); \
+		$(MAKE_KNL) INSTALL_PATH=$(abs_srcdir)/dtbs/boot dtbs; \
+		$(MAKE_KNL) INSTALL_PATH=$(abs_srcdir)/dtbs/boot dtbs_install; \
+		${SHELL} $(abs_top_srcdir)/makedeb -n "linux-dtbs" -v @$(abs_srcdir)/kernel-version -B @$(KERNEL_SRC)/.version -s "linux-upstream" -S "kernel" -u $(PACKAGE_BUGREPORT) -b $(abs_srcdir)/dtbs -p $(prefix) -h $(host_alias) -l " This package install the dtbs files for linux-kernel."; \
 	fi
-	mv $(BUILDER_ROOT)/*.deb $(abs_top_srcdir)
-	if [ -f $(KERNEL_SRC)/arch/arm/configs/armStrap_$(KERNEL_CNF)_defconfig ]; then rm -f $(KERNEL_SRC)/arch/arm/configs/armStrap_$(KERNEL_CNF)_defconfig; fi
+	cp $(KERNEL_SRC)/scripts/package/builddeb $(KERNEL_SRC)/scripts/package/builddeb.save
+	sed -i 's/^libc_headers_packagename=linux-libc-dev.*/libc_headers_packagename=linux-libc-dev-$$version/' "$(KERNEL_SRC)/scripts/package/builddeb"
+	sed -i 's/^fwpackagename=linux-firmware-image.*/fwpackagename=linux-firmware-image-$$version/' "$(KERNEL_SRC)/scripts/package/builddeb"
+	chmod +x $(KERNEL_SRC)/scripts/package/builddeb
+	$(MAKE_KNL) deb-pkg
+	mv $(KERNEL_SRC)/scripts/package/builddeb.save $(KERNEL_SRC)/scripts/package/builddeb
+	chmod +x $(KERNEL_SRC)/scripts/package/builddeb
+	[ "`ls -A $(abs_srcdir)/*.deb`" ] && mv $(abs_srcdir)/*.deb $(abs_top_srcdir) || echo "No packages found in $(abs_srcdir)"
+	[ "`ls -A $(BUILDER_ROOT)/*.deb`" ] && mv $(BUILDER_ROOT)/*.deb $(abs_top_srcdir) || echo "No packages found in $(BUILDER_ROOT)"
+	if [ -f $(abs_srcdir)/kernel-version ]; then rm -fv kernel-version; fi;
+	if [ -d $(abs_srcdir)/dtbs ]; then rm -rfv $(abs_srcdir)/dtbs; fi;
+	if [ -d $(abs_srcdir)/debian ]; then rm -rfv $(abs_srcdir)/debian; fi;
+	if [ -f $(KERNEL_SRC)/arch/arm/configs/armStrap_$(KERNEL_CNF)_defconfig ]; then rm -fv $(KERNEL_SRC)/arch/arm/configs/armStrap_$(KERNEL_CNF)_defconfig; fi
 	$(MAKE_CLN)
 
 version:
@@ -88,15 +92,13 @@ version:
 version-clean:
 
 Kernels: kernels-git kernels-builder
-	@touch Kernels
 
 all-local: Kernels
 
 clean-local:
-	-rm -f @touch Kernels
 
 clean-git:
-	if [ -d $(abs_top_srcdir)/src/linux ]; then rm -rf $(abs_top_srcdir)/src/linux; fi
+	if [ -d $(abs_top_srcdir)/src/linux ]; then rm -rfv $(abs_top_srcdir)/src/linux; fi
 	
 clean-version:
 

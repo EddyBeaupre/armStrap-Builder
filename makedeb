@@ -2,7 +2,7 @@
 
 set -e
 
-while getopts ":n:v:u:b:p:h:l:d:c:" opt; do
+while getopts ":n:v:u:b:B:p:a:h:l:d:D:c:s:S:P:" opt; do
   case $opt in
     n)
       if [[ ${OPTARG,,} =~ ^@ ]]; then
@@ -18,11 +18,21 @@ while getopts ":n:v:u:b:p:h:l:d:c:" opt; do
         package_version="${OPTARG}"
       fi
       ;;
+    a)
+      package_architecture="${OPTARG}"
+      ;;
     u)
       package_url="${OPTARG}"
       ;;
     b)
       build_dir="$(realpath ${OPTARG%/})"
+      ;;
+    B)
+      if [[ ${OPTARG,,} =~ ^@ ]]; then
+        build_number="$(cat ${OPTARG:1})"
+      else
+        build_number"${OPTARG}"
+      fi
       ;;
     p)
       build_prefix="${OPTARG}"
@@ -36,9 +46,21 @@ while getopts ":n:v:u:b:p:h:l:d:c:" opt; do
     d)
       package_depends="${OPTARG}"
       ;;
+    D)
+      package_suggest="${OPTARG}"
+      ;;
     c)
       package_conflicts="${OPTARG}"
       ;;
+    s)
+      package_source="${OPTARG}"
+      ;;
+    S)
+      package_section="${OPTARG}"
+      ;;
+    P)
+      package_priority="${OPTARG}"
+      ;;  
     \?)
       echo "Usage!"
       exit 0
@@ -50,20 +72,42 @@ while getopts ":n:v:u:b:p:h:l:d:c:" opt; do
   esac
 done
 
+package_fullname="${package_name}-${package_version}"
+
+if [ -z "${package_source}" ]; then
+  package_source="${package_fullname}"
+fi
+
+if [ -z "${package_section}" ]; then
+  package_section="admin"
+fi
+
+if [ -z "${package_priority}" ]; then
+  package_priority="optional"
+fi
+
+if [ -z "${package_architecture}" ]; then
+  package_architecture="any"
+fi
+
+if [ -z "${build_number}" ]; then
+  build_number=1
+fi
+
 function create_package {
 	local package_arch=$(dpkg --print-architecture)
 
-	if ! [ -d "${build_dir}${build_prefix}/share/doc/${package_name}" ]; then
-		mkdir -p ${build_dir}${build_prefix}/share/doc/${package_name}/
+	if ! [ -d "${build_dir}${build_prefix}/share/doc/${package_fullname}" ]; then
+		mkdir -p ${build_dir}${build_prefix}/share/doc/${package_fullname}/
 	fi
 	
 	if ! [ -d "${build_dir}/DEBIAN/" ]; then
 		mkdir -p ${build_dir}/DEBIAN/
 	fi
 	
-	cp debian/copyright "${build_dir}${build_prefix}/share/doc/${package_name}/"
-	cp debian/changelog "${build_dir}${build_prefix}/share/doc/${package_name}/changelog.Debian"
-	gzip -9 -f "${build_dir}${build_prefix}/share/doc/${package_name}/changelog.Debian"
+	cp debian/copyright "${build_dir}${build_prefix}/share/doc/${package_fullname}/"
+	cp debian/changelog "${build_dir}${build_prefix}/share/doc/${package_fullname}/changelog.Debian"
+	gzip -9 -f "${build_dir}${build_prefix}/share/doc/${package_fullname}/changelog.Debian"
 	sh -c "cd '${build_dir}'; find . -type f ! -path './DEBIAN/*' -printf '%P\0' | xargs -r0 md5sum > DEBIAN/md5sums"
 
 	chown -R root:root "${build_dir}"
@@ -75,7 +119,7 @@ function create_package {
 			;;
 	esac
 	
-	dpkg-gencontrol -DArchitecture=${package_arch} -p${package_name} -P"${build_dir}"
+	dpkg-gencontrol -DArchitecture=${package_arch} -p${package_fullname} -P"${build_dir}"
 	dpkg --build "${build_dir}" .	
 }
 
@@ -85,9 +129,9 @@ function create_changelog {
   fi
 
   cat <<EOF > debian/changelog
-${package_name} (${package_version}) unstable; urgency=low
+${package_source} (${package_version}-${build_number}) unstable; urgency=low
 
-  * ${package_name} release ${package_version}.
+  * ${package_source}, version ${package_version}.
 
  -- ${DEBFULLNAME} <${DEBEMAIL}>  $(date -R)
 EOF
@@ -100,7 +144,7 @@ function create_copyright {
 
   cat <<EOF > debian/copyright
 Format: http://www.debian.org/doc/packaging-manuals/copyright-format/1.0
-Upstream-Name: ${package_name}
+Upstream-Name: ${package_fullname}
 Upstream-Contact: ${DEBFULLNAME} <${DEBEMAIL}>
 Source: ${package_url}
 
@@ -131,20 +175,20 @@ function create_control {
   fi
 
   cat <<EOF > debian/control
-Source: ${package_name}
-Section: admin
-Priority: optional
+Source: ${package_source}
+Section: ${package_section}
+Priority: ${package_priority}
 Maintainer: ${DEBFULLNAME} <${DEBEMAIL}>
 Standards-Version: ${package_version}
 Homepage: ${package_url}
 
-Package: ${package_name}
-Provides: ${package_name}
-Suggests:
+Package: ${package_fullname}
+Provides: ${package_name}, ${package_fullname}
+Suggests: ${package_suggest}
 Depends: ${package_depends}
 Conflicts: ${package_conflicts}
-Architecture: any
-Description: ${package_name} version ${package_version}
+Architecture: ${package_architecture}
+Description: ${package_name}, version ${package_version}
  ${package_description}
 EOF
 }

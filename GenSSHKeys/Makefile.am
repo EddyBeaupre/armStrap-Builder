@@ -3,10 +3,10 @@ EXTRA_DIST=gensshkeys postinst prerm
 .PHONY: version clean-version
 
 version:
-	${SHELL} $(abs_top_srcdir)/makever $(abs_srcdir)/.version
+	${SHELL} $(abs_top_srcdir)/makever $(abs_srcdir)/.version $(abs_srcdir)/.version_build
 
 clean-version:
-	-rm -f $(abs_srcdir)/.version
+	-rm -fv $(abs_srcdir)/.version $(abs_srcdir)/.version_build
 
 GenSSHKeys: version
 	@echo "------------------------------------------"
@@ -17,16 +17,16 @@ GenSSHKeys: version
 	$(INSTALL) $(abs_srcdir)/gensshkeys $(abs_srcdir)/build/etc/init.d
 	$(INSTALL) $(abs_srcdir)/postinst $(abs_srcdir)/build/DEBIAN
 	$(INSTALL) $(abs_srcdir)/prerm $(abs_srcdir)/build/DEBIAN
-	${SHELL} $(abs_top_srcdir)/makedeb -n armStrap-$(subdir) -v @$(abs_srcdir)/.version -u $(PACKAGE_BUGREPORT) -b $(abs_srcdir)/build -p $(prefix) -h $(host_alias) -l " This package force the regeneration of ssh keys at first boot."
+	${SHELL} $(abs_top_srcdir)/makedeb -n armStrap-$(subdir) -v @$(abs_srcdir)/.version -B @$(abs_srcdir)/.version_build -u $(PACKAGE_BUGREPORT) -b $(abs_srcdir)/build -p $(prefix) -h $(host_alias) -l " This package force the regeneration of ssh keys at first boot."
 	mv $(abs_srcdir)/*.deb $(abs_top_srcdir)
 	@touch GenSSHKeys
 
 all-local: GenSSHKeys
 
 clean-local:
-	-rm -f GenSSHKeys
-	if [ -d $(abs_srcdir)/build ]; then rm -rf $(abs_srcdir)/build; fi
-	if [ -d $(abs_srcdir)/debian ]; then rm -rf $(abs_srcdir)/debian; fi
+	-rm -fv GenSSHKeys
+	if [ -d $(abs_srcdir)/build ]; then rm -rfv $(abs_srcdir)/build; fi
+	if [ -d $(abs_srcdir)/debian ]; then rm -rfv $(abs_srcdir)/debian; fi
 
 help:
 	@echo -e "\narmStrap GenSSHKeys."

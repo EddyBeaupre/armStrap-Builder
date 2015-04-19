@@ -1,24 +1,23 @@
 #!/bin/bash
 
-if ! [ -z ${1} ]; then
+if ! [[ -z ${1} && -z ${2} ]]; then
   if [ -f ${1} ]; then
-    version=$(cat ${1})
-    tmp_ifs="${IFS}"
-    IFS="-"
-    version=(${version})
-    version_date=${version[0]}
-    version_build=${version[1]}
-    IFS="${tmp_ifs}"
+    version_date=$(cat ${1})
+  else
+    version_date=$(date +%Y%m%d)
+  fi
+  if [ -f ${2} ]; then
+    version_build=$(cat ${2})
     if [ "$(date +%Y%m%d)" == "${version_date}" ]; then
       version_build=$((${version_build} + 1))
     else
-    	version_date=$(date +%Y%m%d)
-    	version_build=1
+      version_build=1
     fi
-    echo "${version_date}-${version_build}" > ${1}
   else
-    echo "$(date +%Y%m%d)-1" > ${1}
+    version_build=1
   fi
+  echo "${version_date}" > ${1}
+  echo "${version_build}" > ${2}
 else
   echo "Usage: $(basename $0) <VERSION_FILE>"
 fi

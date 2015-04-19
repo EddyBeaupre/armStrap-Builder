@@ -69,10 +69,10 @@ $(U_BOOT_LST):
 	$(INSTALL_DATA) $(SUNXI_BOARDS_FEX) $(U_BOOT_SUNXI_DST)
 	
 version:
-	${SHELL} $(abs_top_srcdir)/makever $(abs_srcdir)/.version
+	${SHELL} $(abs_top_srcdir)/makever $(abs_srcdir)/.version $(abs_srcdir)/.version_build
 	
 clean-version:
-	-rm -f $(abs_srcdir)/.version
+	-rm -fv $(abs_srcdir)/.version $(abs_srcdir)/.version_build
 	
 makedeb: version u-boot-git u-boot-builder
 	if ! [ -d $(U_BOOT_PKG)/DEBIAN ]; then $(MKDIR_P) $(U_BOOT_PKG)/DEBIAN; fi
@@ -93,19 +93,19 @@ makedeb: version u-boot-git u-boot-builder
 	$(INSTALL_DATA) $(U_BOOT_PKG)$(mandir)/man8/armstrap-u-boot-installer.8.gz $(U_BOOT_SUNXI_PKG)$(mandir)/man8/armstrap-u-boot-installer.8.gz
 	$(INSTALL_DATA) README $(U_BOOT_PKG)$(datarootdir)/armStrap-$(subdir)
 	$(INSTALL_DATA) README $(U_BOOT_SUNXI_PKG)$(datarootdir)/armStrap-$(subdir)
-	@${SHELL} $(abs_top_srcdir)/makedeb -n armStrap-$(subdir) -v @.version -u $(PACKAGE_BUGREPORT) -b $(U_BOOT_PKG) -p $(prefix) -h $(host_alias) -c armstrap-$(subdir)-sunxi -d "armstrap-sunxi-tools (>= 20150410)" -l " This package contain all the bootloaders avalable to\n armStrap. For more information check the armStrap project\n repository."
-	@${SHELL} $(abs_top_srcdir)/makedeb -n armStrap-$(subdir)-sunxi -v @.version -u $(PACKAGE_BUGREPORT) -b $(U_BOOT_SUNXI_PKG) -p $(prefix) -h $(host_alias) -c armstrap-$(subdir) -d "armstrap-sunxi-tools (>= 20150410)" -l " This package contain all the bootloaders avalable to\n armStrap. For more information check the armStrap project\n repository."
+	@${SHELL} $(abs_top_srcdir)/makedeb -n armStrap-$(subdir) -v @$(abs_srcdir)/.version -B @$(abs_srcdir)/.version_build -u $(PACKAGE_BUGREPORT) -b $(U_BOOT_PKG) -p $(prefix) -h $(host_alias) -c armstrap-$(subdir)-sunxi -d "armstrap-sunxi-tools (>= 20150410)" -l " This package contain all the bootloaders avalable to\n armStrap. For more information check the armStrap project\n repository."
+	@${SHELL} $(abs_top_srcdir)/makedeb -n armStrap-$(subdir)-sunxi -v @$(abs_srcdir)/.version -B @$(abs_srcdir)/.version_build -u $(PACKAGE_BUGREPORT) -b $(U_BOOT_SUNXI_PKG) -p $(prefix) -h $(host_alias) -c armstrap-$(subdir) -d "armstrap-sunxi-tools (>= 20150410)" -l " This package contain all the bootloaders avalable to\n armStrap. For more information check the armStrap project\n repository."
 	mv *.deb $(abs_top_srcdir)
 
 all-local: makedeb
 	
 clean-local:
-	-rm -f U-Boot
-	if [ -d $(abs_srcdir)/build ]; then rm -rf $(abs_srcdir)/build; fi
-	if [ -d $(abs_srcdir)/debian ]; then rm -rf $(abs_srcdir)/debian; fi
+	-rm -fv U-Boot
+	if [ -d $(abs_srcdir)/build ]; then rm -rfv $(abs_srcdir)/build; fi
+	if [ -d $(abs_srcdir)/debian ]; then rm -rfv $(abs_srcdir)/debian; fi
 
 clean-git:
-	if [ -d $(BUILDER_ROOT) ]; then rm -rf $(BUILDER_ROOT); fi
+	if [ -d $(BUILDER_ROOT) ]; then rm -rfv $(BUILDER_ROOT); fi
 
 help:
 	@echo -e "\narmStrap U-Boot."

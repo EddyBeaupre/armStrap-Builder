@@ -3,10 +3,10 @@ EXTRA_DIST=armstrap-sunxi-tools.8
 .PHONY: version clean-git clean-version
 
 version:
-	${SHELL} $(abs_top_srcdir)/makever $(abs_srcdir)/.version
+	${SHELL} $(abs_top_srcdir)/makever $(abs_srcdir)/.version $(abs_srcdir)/.version_build
 
 clean-version:
-	-rm -f $(abs_srcdir)/.version
+	-rm -fv $(abs_srcdir)/.version $(abs_srcdir)/.version_build
 
 Sunxi-Tools: version
 	@echo "-------------------------------------------"
@@ -36,20 +36,20 @@ Sunxi-Tools: version
 	chmod 755 $(abs_srcdir)/build/DEBIAN/postinst
 	chmod 755 $(abs_srcdir)/build/DEBIAN/postrm
 	gzip -9 -c armstrap-sunxi-tools.8 > $(abs_srcdir)/build$(mandir)/man8/armstrap-sunxi-tools.8.gz
-	${SHELL} $(abs_top_srcdir)/makedeb -n armStrap-$(subdir) -v @$(abs_srcdir)/.version -u $(PACKAGE_BUGREPORT) -b $(abs_srcdir)/build -p $(prefix) -h $(host_alias) -l " This package provide a subset of the sunxi-tools used by armStrap."
+	${SHELL} $(abs_top_srcdir)/makedeb -n armStrap-$(subdir) -v @$(abs_srcdir)/.version -B @$(abs_srcdir)/.version_build -u $(PACKAGE_BUGREPORT) -b $(abs_srcdir)/build -p $(prefix) -h $(host_alias) -l " This package provide a subset of the sunxi-tools used by armStrap."
 	mv *.deb $(abs_top_srcdir)
 	@touch Sunxi-Tools
 
 all-local: Sunxi-Tools
 
 clean-git:
-	if [ -d $(abs_top_srcdir)/src/sunxi-tools ]; then rm -rf $(abs_top_srcdir)/src/sunxi-tools; fi
+	if [ -d $(abs_top_srcdir)/src/sunxi-tools ]; then rm -rfv $(abs_top_srcdir)/src/sunxi-tools; fi
 
 clean-local:
-	rm -f Sunxi-Tools
-	-rm -f $(abs_top_srcdir)/src/sunxi-tools/*.o
-	if [ -d $(abs_srcdir)/build ]; then rm -rf $(abs_srcdir)/build; fi 
-	if [ -d $(abs_srcdir)/debian ]; then rm -rf $(abs_srcdir)/debian; fi
+	-rm -fv Sunxi-Tools
+	-rm -fv $(abs_top_srcdir)/src/sunxi-tools/*.o
+	if [ -d $(abs_srcdir)/build ]; then rm -rfv $(abs_srcdir)/build; fi 
+	if [ -d $(abs_srcdir)/debian ]; then rm -rfv $(abs_srcdir)/debian; fi
 
 help:
 	@echo -e "\narmStrap Sunxi-Tools."
