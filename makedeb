@@ -2,7 +2,7 @@
 
 set -e
 
-while getopts ":n:v:u:b:B:p:a:h:l:d:D:c:s:S:P:" opt; do
+while getopts ":n:v:u:b:B:p:a:h:l:d:D:c:s:S:P:F" opt; do
   case $opt in
     n)
       if [[ ${OPTARG,,} =~ ^@ ]]; then
@@ -60,7 +60,10 @@ while getopts ":n:v:u:b:B:p:a:h:l:d:D:c:s:S:P:" opt; do
       ;;
     P)
       package_priority="${OPTARG}"
-      ;;  
+      ;;
+    F)
+      package_fullname="1"
+      ;;
     \?)
       echo "Usage!"
       exit 0
@@ -72,7 +75,11 @@ while getopts ":n:v:u:b:B:p:a:h:l:d:D:c:s:S:P:" opt; do
   esac
 done
 
-package_fullname="${package_name}-${package_version}"
+if ! [ -z "${package_fullname}" ]; then
+  package_fullname="${package_name}-${package_version}"
+else
+  package_fullname="${package_name}"
+fi
 
 if [ -z "${package_source}" ]; then
   package_source="${package_fullname}"
@@ -183,7 +190,7 @@ Standards-Version: ${package_version}
 Homepage: ${package_url}
 
 Package: ${package_fullname}
-Provides: ${package_name}, ${package_fullname}
+Provides: ${package_name}, ${package_name}-${package_version}
 Suggests: ${package_suggest}
 Depends: ${package_depends}
 Conflicts: ${package_conflicts}

@@ -11,6 +11,10 @@ function replaceValue {
   mv "${tmpfile}" "${1}"
 }
 
+if [ ! -f /boot/boot.cmd ]; then
+  cp ${datarootdir}/${package_name}/boot.cmd.dist /boot/boot.cmd
+fi
+
 if [ -f "/etc/armStrap.conf" ]; then
   if [ -d "${datarootdir}/${package_name}" ]; then
     replaceValue "/etc/armStrap.conf" "uboot_dir" "${datarootdir}/${package_name}"

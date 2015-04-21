@@ -1,4 +1,4 @@
-EXTRA_DIST = configs/armStrap_sun4i_defconfig  configs/armStrap_sun4i-stage_defconfig  configs/armStrap_sun7i-ct_defconfig  configs/armStrap_sun7i_defconfig  configs/armStrap_sun7i-stage_defconfig
+EXTRA_DIST = configs/armStrap_sun4i_defconfig  configs/armStrap_sun4i-stage_defconfig  configs/armStrap_sun7i-ct_defconfig  configs/armStrap_sun7i_defconfig  configs/armStrap_sun7i-stage_defconfig configs/armStrap_sunxi-next_defconfig configs/armStrap_mainline_defconfig
 
 MAKE_CMD = CC=$(CC) KBUILD_DEBARCH=$(KBUILD_DEBARCH) dpkg-architecture -t$(host_alias) -c $(MAKE) $(MAKE_PARAMS) ARCH=$(ARCH) CROSS_COMPILE=$(CROSS_COMPILE)
 MAKE_CLN = $(MAKE_CMD) -C $(KERNEL_SRC) distclean
@@ -10,7 +10,7 @@ SOURCE_LST = sunxi/https\://github.com/linux-sunxi/linux-sunxi.git sunxi-ct/http
 SOURCE_DIR = $(BUILDER_ROOT)/`echo -n "$@" | awk -F '/' '{print $$1}'`
 SOURCE_GIT = `echo -n "$@" | sed -e 's/^\([^\/]*\)\///'`
 
-KERNEL_LST = sunxi/sunxi-3.4/sun4i sunxi/sunxi-3.4/sun7i sunxi/stage_sunxi-3.4/sun4i-stage sunxi/stage_sunxi-3.4/sun7i-stage sunxi-ct/sunxi-3.4/sun7i-ct sunxi/sunxi-next/sunxi-next mainline/master/sunxi
+KERNEL_LST = sunxi/sunxi-3.4/sun4i sunxi/sunxi-3.4/sun7i sunxi/stage_sunxi-3.4/sun4i-stage sunxi/stage_sunxi-3.4/sun7i-stage sunxi-ct/sunxi-3.4/sun7i-ct sunxi/sunxi-next/sunxi-next mainline/master/mainline
 KERNEL_SRC = $(BUILDER_ROOT)/`echo -n "$@" | awk -F '/' '{print $$1}'`
 KERNEL_BRN = `echo -n "$@" | awk -F '/' '{print $$2}' | sed -e 's/_/\//'`
 KERNEL_CNF = `echo -n "$@" | awk -F '/' '{print $$3}'`
@@ -44,7 +44,7 @@ sun7i-ct: sunxi-ct/sunxi-3.4/sun7i-ct
 
 sunxi-next: sunxi/sunxi-next/sunxi-next
 
-mainline: mainline/master/sunxi
+mainline: mainline/master/mainline
 
 $(KERNEL_LST):
 	@echo "-------------------------[ Building kernel package ]-------------------------"
@@ -53,7 +53,7 @@ $(KERNEL_LST):
 	@echo "---       Kernel Type : $(KERNEL_CNF)"
 	@echo "-----------------------------------------------------------------------------"
 	$(MAKE_CLN)
-	cd $(KERNEL_SRC) && git checkout $(KERNEL_BRN)
+	-cd $(KERNEL_SRC) && git stash && git stash drop && git checkout $(KERNEL_BRN)
 	$(MAKE_CLN)
 	if [ -f $(abs_srcdir)/configs/armStrap_$(KERNEL_CNF)_defconfig ]; then \
 		$(INSTALL_DATA) $(abs_srcdir)/configs/armStrap_$(KERNEL_CNF)_defconfig $(KERNEL_SRC)/arch/arm/configs/; \
@@ -70,7 +70,7 @@ $(KERNEL_LST):
 		$(MKDIR_P) $(abs_srcdir)/dtbs; \
 		$(MAKE_KNL) INSTALL_PATH=$(abs_srcdir)/dtbs/boot dtbs; \
 		$(MAKE_KNL) INSTALL_PATH=$(abs_srcdir)/dtbs/boot dtbs_install; \
-		${SHELL} $(abs_top_srcdir)/makedeb -n "linux-dtbs" -v @$(abs_srcdir)/kernel-version -B @$(KERNEL_SRC)/.version -s "linux-upstream" -S "kernel" -u $(PACKAGE_BUGREPORT) -b $(abs_srcdir)/dtbs -p $(prefix) -h $(host_alias) -l " This package install the dtbs files for linux-kernel."; \
+		${SHELL} $(abs_top_srcdir)/makedeb -n "linux-dtbs" -v @$(abs_srcdir)/kernel-version -F -B @$(KERNEL_SRC)/.version -s "linux-upstream" -S "kernel" -u $(PACKAGE_BUGREPORT) -b $(abs_srcdir)/dtbs -p $(prefix) -h $(host_alias) -l " This package install the dtbs files for linux-kernel."; \
 	fi
 	cp $(KERNEL_SRC)/scripts/package/builddeb $(KERNEL_SRC)/scripts/package/builddeb.save
 	sed -i 's/^libc_headers_packagename=linux-libc-dev.*/libc_headers_packagename=linux-libc-dev-$$version/' "$(KERNEL_SRC)/scripts/package/builddeb"

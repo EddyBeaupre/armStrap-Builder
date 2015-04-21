@@ -1,39 +1,8 @@
 #!/bin/bash -e
 
-function replaceValue {
-  local tmpfile="$(mktemp ${1}.XXXXXXXXXX)"
-  
-  sed 's/^'"${2}"'.*/'"${2} ${3}/" < "${1}" > "${tmpfile}"
-  rm -f "${1}"
-  mv "${tmpfile}" "${1}"
-}
-
-if [ -f /etc/armStrap.conf ]; then
-  source /etc/armStrap.conf
+if [ -f /boot/boot.cmd ]; then
+  sed -i 's/^setenv kernel_version.*/setenv kernel_version '"${1}/" /boot/boot.cmd
+  mkimage -C none -A arm -T script -d "/boot/boot.cmd" "/boot/boot.scr"  > /dev/null 2>&1
 else
-  echo "/etc/armStrap.conf not found"
-  exit 1
+  echo "WARNING: /boot/boot.cmd not found. Bootloader was not update"
 fi
-
-vmlinuz="$(ls ${uboot_root}/vmlinuz-* | sort -r | head -n 1)"
-
-if [ -f "${vmlinuz}" ]; then
-  uimage_knrl="${vmlinuz/vmlinuz-/uImage-}"
-  echo "  found ‘${vmlinuz}‘"
-  find ${uboot_root} -name uImage-* -type f -print0 | xargs -0 /bin/rm -fv
-  
-  mkimage -A arm -O linux -T kernel -C none -a ${uimage_load_address} -e  ${uimage_entry_point} -n "Linux" -d ${vmlinuz} ${uimage_knrl} > /dev/null 2>&1
-  echo "created ‘${uimage_knrl}‘"
-else
-  echo "no kernel image found in ‘${uboot_root}‘, aborting"
-  exit 1
-fi
-
-replaceValue "${uboot_root}/boot.cmd" "setenv uimage_addr" "${uboot_uimage_address}"
-replaceValue "${uboot_root}/boot.cmd" "setenv uimage_krnl" "$(basename ${uimage_knrl})"
-replaceValue "${uboot_root}/boot.cmd" "setenv script_addr" "${uboot_script_address}"
-echo "updated ‘${uboot_root}/boot.cmd‘"
-
-
-mkimage -C none -A arm -T script -d "${uboot_root}/boot.cmd" "${uboot_root}/boot.scr"  > /dev/null 2>&1
-echo "created ‘${uboot_root}/boot.scr‘"

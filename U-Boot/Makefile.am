@@ -1,4 +1,4 @@
-EXTRA_DIST=armstrap-u-boot.8  armstrap-u-boot-installer  armstrap-u-boot-installer.8 postinst.in
+EXTRA_DIST=armstrap-u-boot.8  armstrap-u-boot-installer.in armstrap-u-boot-installer.8 postinst.in boot.cmd.dist
 
 .NOTPARALLEL:
 
@@ -83,8 +83,10 @@ makedeb: version u-boot-git u-boot-builder
 	$(INSTALL) $(U_BOOT_PKG)/DEBIAN/postinst $(U_BOOT_SUNXI_PKG)/DEBIAN/postinst
 	if ! [ -d $(U_BOOT_PKG)$(sbindir) ]; then $(MKDIR_P) $(U_BOOT_PKG)$(sbindir); fi
 	if ! [ -d $(U_BOOT_SUNXI_PKG)$(sbindir) ]; then $(MKDIR_P) $(U_BOOT_SUNXI_PKG)$(sbindir); fi
-	$(INSTALL) armstrap-u-boot-installer $(U_BOOT_PKG)$(sbindir)
-	$(INSTALL) armstrap-u-boot-installer $(U_BOOT_SUNXI_PKG)$(sbindir)
+	$(INSTALL) armstrap-u-boot-installer.in $(U_BOOT_PKG)$(sbindir)/armstrap-u-boot-installer
+	sed -i "s:#datarootdir#:$(datarootdir):g" $(U_BOOT_PKG)$(sbindir)/armstrap-u-boot-installer
+	sed -i "s:#subdir#:$(subdir):g" $(U_BOOT_PKG)$(sbindir)/armstrap-u-boot-installer
+	$(INSTALL) $(U_BOOT_PKG)$(sbindir)/armstrap-u-boot-installer $(U_BOOT_SUNXI_PKG)$(sbindir)
 	if ! [ -d $(U_BOOT_PKG)$(mandir)/man8/ ]; then $(MKDIR_P) $(U_BOOT_PKG)$(mandir)/man8/; fi
 	if ! [ -d $(U_BOOT_SUNXI_PKG)$(mandir)/man8/ ]; then $(MKDIR_P) $(U_BOOT_SUNXI_PKG)$(mandir)/man8/; fi
 	gzip -9 -c armstrap-u-boot.8 > $(U_BOOT_PKG)$(mandir)/man8/armstrap-u-boot.8.gz
@@ -93,6 +95,8 @@ makedeb: version u-boot-git u-boot-builder
 	$(INSTALL_DATA) $(U_BOOT_PKG)$(mandir)/man8/armstrap-u-boot-installer.8.gz $(U_BOOT_SUNXI_PKG)$(mandir)/man8/armstrap-u-boot-installer.8.gz
 	$(INSTALL_DATA) README $(U_BOOT_PKG)$(datarootdir)/armStrap-$(subdir)
 	$(INSTALL_DATA) README $(U_BOOT_SUNXI_PKG)$(datarootdir)/armStrap-$(subdir)
+	$(INSTALL_DATA) boot.cmd.dist $(U_BOOT_PKG)$(datarootdir)/armStrap-$(subdir)
+	$(INSTALL_DATA) boot.cmd.dist $(U_BOOT_SUNXI_PKG)$(datarootdir)/armStrap-$(subdir)
 	@${SHELL} $(abs_top_srcdir)/makedeb -n armStrap-$(subdir) -v @$(abs_srcdir)/.version -B @$(abs_srcdir)/.version_build -u $(PACKAGE_BUGREPORT) -b $(U_BOOT_PKG) -p $(prefix) -h $(host_alias) -c armstrap-$(subdir)-sunxi -d "armstrap-sunxi-tools (>= 20150410)" -l " This package contain all the bootloaders avalable to\n armStrap. For more information check the armStrap project\n repository."
 	@${SHELL} $(abs_top_srcdir)/makedeb -n armStrap-$(subdir)-sunxi -v @$(abs_srcdir)/.version -B @$(abs_srcdir)/.version_build -u $(PACKAGE_BUGREPORT) -b $(U_BOOT_SUNXI_PKG) -p $(prefix) -h $(host_alias) -c armstrap-$(subdir) -d "armstrap-sunxi-tools (>= 20150410)" -l " This package contain all the bootloaders avalable to\n armStrap. For more information check the armStrap project\n repository."
 	mv *.deb $(abs_top_srcdir)
