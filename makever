@@ -18,6 +18,7 @@ if ! [[ -z ${1} && -z ${2} ]]; then
   fi
   echo "${version_date}" > ${1}
   echo "${version_build}" > ${2}
+  echo "Version is now ${version_date}-${version_build}"
 else
-  echo "Usage: $(basename $0) <VERSION_FILE>"
+  echo "Usage: $(basename $0) <VERSION_FILE> <VERSION_BUILD>"
 fi

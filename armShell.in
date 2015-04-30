@@ -1,0 +1,46 @@
+#!/bin/bash
+
+abs_top_srcdir=@abs_top_srcdir@
+abs_srcdir=@abs_srcdir@
+abs_target="${1%/}"
+shift
+
+if [ -d ${abs_top_srcdir}/src/rootfs/${abs_target}/bin ]; then
+  source_dir=$(realpath ${abs_top_srcdir}/src/rootfs/${abs_target})
+
+  touch ${source_dir}/usr/sbin/policy-rc.d.lock
+  if [ -f ${source_dir}/usr/sbin/policy-rc.d ]; then mv ${source_dir}/usr/sbin/policy-rc.d ${source_dir}/usr/sbin/policy-rc.d.disabled; fi
+  echo -e "exit 101\n" > ${source_dir}/usr/sbin/policy-rc.d
+  chmod +x ${source_dir}/usr/sbin/policy-rc.d
+  cp /usr/bin/qemu-arm-static ${source_dir}/usr/bin
+  if [ -d ${source_dir}/proc ]; then
+    mount --bind /proc "${source_dir}/proc"
+  fi
+  if [ -d ${source_dir}/sys ]; then
+    mount --bind /sys "${source_dir}/sys"
+  fi
+  if [ -d ${source_dir}/dev/pts ]; then
+    mount --bind /dev/pts "${source_dir}/dev/pts"
+  fi
+  if ! [ -z "${1}" ]; then
+    debian_chroot="armStrap@$(basename ${source_dir})" PS1='${debian_chroot:+($debian_chroot)}\u@\h:\w\$ ' LC_ALL="" LANGUAGE="en_US:en" LANG="en_US.UTF-8" chroot "${source_dir}" /bin/bash --login -c "${@}"
+  else
+    debian_chroot="armStrap@$(basename ${source_dir})" PS1='${debian_chroot:+($debian_chroot)}\u@\h:\w\$ ' LC_ALL="" LANGUAGE="en_US:en" LANG="en_US.UTF-8" chroot "${source_dir}" /bin/bash --login -c /bin/bash
+  fi
+  if [ -d ${source_dir}/dev/pts ]; then
+    umount "${source_dir}/dev/pts"
+  fi
+  if [ -d ${source_dir}/sys ]; then
+    umount "${source_dir}/sys"
+  fi
+  if [ -d ${source_dir}/proc ]; then
+    umount "${source_dir}/proc"
+  fi
+  rm -f ${source_dir}/usr/bin/qemu-arm-static
+  rm -f ${source_dir}/usr/sbin/policy-rc.d
+  if [ -f ${source_dir}/usr/sbin/policy-rc.d.disabled ]; then mv ${source_dir}/usr/sbin/policy-rc.d.disabled ${source_dir}/usr/sbin/policy-rc.d; fi
+  rm -f ${source_dir}/usr/sbin/policy-rc.d.lock
+else
+  echo -e "Usage : $(basename $0) <RootFS> [<Command>]\n"
+  echo -e "Avalable RootFS :\n$(ls -A ${abs_top_srcdir}/src/rootfs)"
+fi

@@ -1,4 +1,4 @@
-EXTRA_DIST = configs/armStrap_sun4i_defconfig  configs/armStrap_sun4i-stage_defconfig  configs/armStrap_sun7i-ct_defconfig  configs/armStrap_sun7i_defconfig  configs/armStrap_sun7i-stage_defconfig configs/armStrap_sunxi-next_defconfig configs/armStrap_mainline_defconfig
+EXTRA_DIST = configs/armStrap_sun4i_defconfig  configs/armStrap_sun4i-stage_defconfig  configs/armStrap_sun7i-ct_defconfig  configs/armStrap_sun7i_defconfig  configs/armStrap_sun7i-stage_defconfig configs/armStrap_sunxi-next_defconfig configs/armStrap_mainline_defconfig mkvirtual
 
 MAKE_CMD = CC=$(CC) KBUILD_DEBARCH=$(KBUILD_DEBARCH) dpkg-architecture -t$(host_alias) -c $(MAKE) $(MAKE_PARAMS) ARCH=$(ARCH) CROSS_COMPILE=$(CROSS_COMPILE)
 MAKE_CLN = $(MAKE_CMD) -C $(KERNEL_SRC) distclean
@@ -85,15 +85,19 @@ $(KERNEL_LST):
 	if [ -d $(abs_srcdir)/dtbs ]; then rm -rfv $(abs_srcdir)/dtbs; fi;
 	if [ -d $(abs_srcdir)/debian ]; then rm -rfv $(abs_srcdir)/debian; fi;
 	if [ -f $(KERNEL_SRC)/arch/arm/configs/armStrap_$(KERNEL_CNF)_defconfig ]; then rm -fv $(KERNEL_SRC)/arch/arm/configs/armStrap_$(KERNEL_CNF)_defconfig; fi
+	${SHELL} $(abs_srcdir)/mkvirtual -t $(abs_top_srcdir) -s $(abs_srcdir) -b $(PACKAGE_BUGREPORT) -p $(prefix) -h $(host_alias) -k $(KERNEL_CNF) -d $(abs_top_srcdir)
+	[ "`ls -A $(abs_srcdir)/*.deb`" ] && mv $(abs_srcdir)/*.deb $(abs_top_srcdir) || echo "No packages found in $(abs_srcdir)"
 	$(MAKE_CLN)
-
+	
 version:
+	${SHELL} $(abs_top_srcdir)/makever $(abs_srcdir)/.version $(abs_srcdir)/.version_build
 
 version-clean:
+	-rm -fv $(abs_srcdir)/.version $(abs_srcdir)/.version_build
 
 Kernels: kernels-git kernels-builder
 
-all-local: Kernels
+all-local: version Kernels
 
 clean-local:
 

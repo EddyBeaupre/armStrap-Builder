@@ -1,0 +1,63 @@
+#!/bin/bash
+
+while getopts ":t:s:b:p:h:k:d:" opt; do
+  case $opt in
+    t)
+      abs_top_srcdir="$(realpath ${OPTARG%/})"
+      ;;
+    s)
+      abs_srcdir="$(realpath ${OPTARG%/})"
+      ;;
+    b)
+      package_bugreport="${OPTARG}"
+      ;;
+    p)
+      prefix="${OPTARG}"
+      ;;
+    h)
+      host_alias="${OPTARG}"
+      ;;
+    k)
+      kernel_version="${OPTARG}"
+      ;;
+    d)
+      pkg_path="$(realpath ${OPTARG%/})"
+      ;;
+    \?)
+      echo "Usage!"
+      exit 0
+      ;;
+    :)
+      printf "Option -%s requires an argument.\n\n" "${OPTARG}"
+      exit 1
+    ;;
+  esac
+done      
+
+linux_kernel=$(basename `ls -A ${pkg_path}/linux-image-*-${kernel_version}*_armhf.deb 2> /dev/null ` 2> /dev/null)
+linux_headers=$(basename `ls -A ${pkg_path}/linux-headers-*-${kernel_version}*_armhf.deb  2> /dev/null` 2> /dev/null)
+linux_firmware=$(basename `ls -A ${pkg_path}/linux-firmware-image-*-${kernel_version}*_armhf.deb 2> /dev/null ` 2> /dev/null)
+linux_dtbs=$(basename `ls -A ${pkg_path}/linux-dtbs-*-${kernel_version}*_armhf.deb 2> /dev/null` 2> /dev/null)
+
+linux_kernel_pkg=$(dpkg-deb -I ${pkg_path}/${linux_kernel} | grep Package: | awk '{print $2}')
+linux_headers_pkg=$(dpkg-deb -I ${pkg_path}/${linux_headers} | grep Package: | awk '{print $2}')
+linux_firmware_pkg=$(dpkg-deb -I ${pkg_path}/${linux_firmware} | grep Package: | awk '{print $2}')
+
+armstrap_linux="${linux_kernel_pkg}, ${linux_firmware_pkg}"
+
+if [ -f ${pkg_path}/${linux_dtbs} ]; then
+  linux_dtbs_pkg=$(dpkg-deb -I ${pkg_path}/${linux_dtbs} | grep Package: | awk '{print $2}')
+  armstrap_linux="${armstrap_linux}, ${linux_dtbs_pkg}"
+fi
+
+mkdir -p ${abs_srcdir}/build/armstrap-linux-virtual-${kernel_version}/usr/share/doc/armstrap-linux-virtual-${kernel_version}
+mkdir -p ${abs_srcdir}/build/armstrap-linux-image-virtual-${kernel_version}/usr/share/doc/armstrap-linux-image-virtual-${kernel_version}
+echo "The goal of this package is to always depend on the latest version of the armStrap ${kernel_version} kernel and headers" > ${abs_srcdir}/build/armstrap-linux-virtual-${kernel_version}/usr/share/doc/armstrap-linux-virtual-${kernel_version}/README
+echo "The goal of this package is to always depend on the latest version of the armStrap ${kernel_version} kernel" > ${abs_srcdir}/build/armstrap-linux-image-virtual-${kernel_version}/usr/share/doc/armstrap-linux-image-virtual-${kernel_version}/README
+
+${SHELL} ${abs_top_srcdir}/makedeb -n "armstrap-linux-virtual-${kernel_version}" -v @${abs_srcdir}/.version -B @${abs_srcdir}/.version_build -s "linux-upstream" -S "kernel" -u ${package_bugreport} -b ${abs_srcdir}/build/armstrap-linux-virtual-${kernel_version} -p /usr -h ${host_alias} -d "${armstrap_linux}, ${linux_headers_pkg}" -l "The goal of this package is to always depend on the latest version of the armStrap ${kernel_version} kernel and headers"
+rm -rf ${abs_srcdir}/debian
+${SHELL} ${abs_top_srcdir}/makedeb -n "armstrap-linux-image-virtual-${kernel_version}" -v @${abs_srcdir}/.version -B @${abs_srcdir}/.version_build -s "linux-upstream" -S "kernel" -u ${package_bugreport} -b ${abs_srcdir}/build/armstrap-linux-image-virtual-${kernel_version} -p /usr -h ${host_alias} -d "${armstrap_linux}" -l "The goal of this package is to always depend on the latest version of the armStrap ${kernel_version} kernel"
+rm -rf ${abs_srcdir}/debian
+
+rm -rf ${abs_srcdir}/build

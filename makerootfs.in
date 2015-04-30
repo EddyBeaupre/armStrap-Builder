@@ -1,0 +1,248 @@
+#!/bin/bash
+
+abs_top_srcdir=@abs_top_srcdir@
+abs_srcdir=@abs_srcdir@
+abs_blddir=${abs_top_srcdir}/src/rootfs
+
+function usage {
+  echo "Usage $(basename $0) -d <ubuntu|debian> -v <version> -p <prefix>"
+}
+
+while getopts ":p:d:v:" opt; do
+  case $opt in
+    d)
+      case ${OPTARG,,} in
+        d*)
+          dist="debian"
+          dist_mirror="http://ftp.debian.org/debian/"
+          ;;
+        u*)
+          dist="ubuntu"
+          dist_mirror="http://ports.ubuntu.com/"
+          ;;
+        r*)
+          dist="raspbian"
+          dist_mirror="http://archive.raspbian.org/raspbian/"
+          dist_extra="--keyring /root/.gnupg/pubring.gpg"
+          ;;
+        *)
+          echo "Unknown distribution."
+          exit 1;
+          ;;
+        esac
+      ;;
+    p)
+      dist_arch="${OPTARG,,}"
+      ;;
+    v)
+      dist_version="${OPTARG,,}"
+      ;;
+    \?)
+      usage
+      exit 0
+      ;;
+    :)
+      printf "Option -%s requires an argument.\n\n" "${OPTARG}"
+      exit 1
+    ;;
+  esac    
+done
+
+if [ -z "${dist}" ]; then
+  usage
+  exit 1
+fi
+
+if [ -z "${dist_arch}" ]; then
+  usage
+  exit 1
+fi
+
+if [ -z "${dist_version}" ]; then
+  usage
+  exit 1
+fi
+
+dist_target=${dist_arch}-${dist}-${dist_version}
+
+if ! [ -d ${abs_blddir} ]; then
+  mkdir -p ${abs_blddir}
+fi
+  
+if [ -d ${abs_blddir}/${dist_target} ]; then
+  echo "RootFS ${dist_target}  exist!"
+  exit 1
+fi
+
+echo "Bootstrapping ${dist_target} Stage 1..."
+${abs_top_srcdir}/debootstrap ${dist_extra} --verbose --foreign --arch armhf ${dist_version} ${abs_blddir}/${dist_target} ${dist_mirror}
+cp /usr/bin/qemu-arm-static ${abs_blddir}/${dist_target}/usr/bin
+echo "Bootstrapping ${dist_target} Stage 2..."
+LC_ALL="" LANGUAGE="en_US:en" LANG="en_US.UTF-8" chroot ${abs_blddir}/${dist_target} /debootstrap/debootstrap --verbose --second-stage
+echo "Bootstrapping ${dist_target} Stage 3..."
+LC_ALL="" LANGUAGE="en_US:en" LANG="en_US.UTF-8" chroot ${abs_blddir}/${dist_target} dpkg --configure -a
+
+echo "Setting up Arm Emulator..."
+touch ${abs_blddir}/${dist_target}/usr/sbin/policy-rc.d.lock
+if [ -f ${abs_blddir}/${dist_target}/usr/sbin/policy-rc.d ]; then mv ${abs_blddir}/${dist_target}/usr/sbin/policy-rc.d ${abs_blddir}/${dist_target}/usr/sbin/policy-rc.d.disabled; fi
+echo -e "exit 101\n" > ${abs_blddir}/${dist_target}/usr/sbin/policy-rc.d
+chmod +x ${abs_blddir}/${dist_target}/usr/sbin/policy-rc.d
+cp /usr/bin/qemu-arm-static ${abs_blddir}/${dist_target}/usr/bin
+if [ -d ${abs_blddir}/${dist_target}/proc ]; then mount --bind /proc "${abs_blddir}/${dist_target}/proc"; fi
+if [ -d ${abs_blddir}/${dist_target}/sys ]; then mount --bind /sys "${abs_blddir}/${dist_target}/sys"; fi
+if [ -d ${abs_blddir}/${dist_target}/dev/pts ]; then mount --bind /dev/pts "${abs_blddir}/${dist_target}/dev/pts"; fi
+
+echo "Setting up basic configuration..."
+cat > ${abs_blddir}/${dist_target}/etc/resolv.conf <<EOF
+domain armstrap.net
+nameserver 8.8.8.8
+nameserver 8.8.4.4
+EOF
+
+cat > ${abs_blddir}/${dist_target}/armstrapkey <<EOF
+#!/bin/bash
+TMP_GNUPGHOME="\${GNUPGHOME}"
+export GNUPGHOME="\$(mktemp -d)"
+chown \${USER}:\${USER} \${GNUPGHOME}
+chmod 0700 \${GNUPGHOME}
+gpg --keyserver pgpkeys.mit.edu --recv-key 1F7F94D7A99BC726
+gpg --armor --export 1F7F94D7A99BC726 | apt-key add -
+rm -rf \${GNUPGHOME}
+GNUPGHOME="\${TMP_GNUPGHOME}"
+EOF
+chmod +x ${abs_blddir}/${dist_target}/armstrapkey
+LC_ALL="" LANGUAGE="en_US:en" LANG="en_US.UTF-8" chroot ${abs_blddir}/${dist_target} /armstrapkey
+rm -f ${abs_blddir}/${dist_target}/armstrapkey
+
+case ${dist_arch} in
+  armv7l)
+  cat > ${abs_blddir}/${dist_target}/etc/apt/sources.list.d/armstrap-sunxi.list <<EOF
+deb http://archive.armstrap.net/apt sunxi main
+deb-src http://archive.armstrap.net/apt sunxi main
+EOF
+   ;;
+  armv6l)
+  cat > ${abs_blddir}/${dist_target}/etc/apt/sources.list.d/armstrap-bcmrpi.list <<EOF
+deb http://archive.armstrap.net/apt bcmrpi main
+deb-src http://archive.armstrap.net/apt bcmrpi main
+EOF
+   ;;
+esac
+
+case ${dist} in 
+  ubuntu)
+    cat > ${abs_blddir}/${dist_target}/etc/apt/sources.list <<EOF
+# See http://help.ubuntu.com/community/UpgradeNotes for how to upgrade to
+# newer versions of the distribution.
+
+deb http://ports.ubuntu.com/ubuntu-ports/ ${dist_version} main restricted
+deb-src http://ports.ubuntu.com/ubuntu-ports/ ${dist_version} main restricted
+
+## Major bug fix updates produced after the final release of the
+## distribution.
+deb http://ports.ubuntu.com/ubuntu-ports/ ${dist_version}-updates main restricted
+deb-src http://ports.ubuntu.com/ubuntu-ports/ ${dist_version}-updates main restricted
+
+## Uncomment the following two lines to add software from the 'universe'
+## repository.
+## N.B. software from this repository is ENTIRELY UNSUPPORTED by the Ubuntu
+## team. Also, please note that software in universe WILL NOT receive any
+## review or updates from the Ubuntu security team.
+deb http://ports.ubuntu.com/ubuntu-ports/ ${dist_version} universe
+deb-src http://ports.ubuntu.com/ubuntu-ports/ ${dist_version} universe
+deb http://ports.ubuntu.com/ubuntu-ports/ ${dist_version}-updates universe
+deb-src http://ports.ubuntu.com/ubuntu-ports/ ${dist_version}-updates universe
+
+## N.B. software from this repository may not have been tested as
+## extensively as that contained in the main release, although it includes
+## newer versions of some applications which may provide useful features.
+## Also, please note that software in backports WILL NOT receive any review
+## or updates from the Ubuntu security team.
+deb http://ports.ubuntu.com/ubuntu-ports/ ${dist_version}-backports main restricted
+deb-src http://ports.ubuntu.com/ubuntu-ports/ ${dist_version}-backports main restricted
+
+deb http://ports.ubuntu.com/ubuntu-ports/ ${dist_version}-security main restricted
+deb-src http://ports.ubuntu.com/ubuntu-ports/ ${dist_version}-security main restricted
+deb http://ports.ubuntu.com/ubuntu-ports/ ${dist_version}-security universe
+deb-src http://ports.ubuntu.com/ubuntu-ports/ ${dist_version}-security universe
+deb http://ports.ubuntu.com/ubuntu-ports/ ${dist_version}-security multiverse
+deb-src http://ports.ubuntu.com/ubuntu-ports/ ${dist_version}-security multiverse
+EOF
+
+    echo "Setting up timezone..."
+    echo "America/Montreal" > ${abs_blddir}/${dist_target}/etc/timezone
+
+    echo "Setting up locales..."
+    DEBIAN_FRONTEND="noninteractive" LC_ALL="" LANGUAGE="en_US:en" LANG="en_US.UTF-8" chroot ${abs_blddir}/${dist_target} /usr/sbin/locale-gen --purge en_US.UTF-8 fr_CA.UTF-8
+    DEBIAN_FRONTEND="noninteractive" LC_ALL="" LANGUAGE="en_US:en" LANG="en_US.UTF-8" chroot ${abs_blddir}/${dist_target} /usr/sbin/update-locale en_US.UTF-8
+    DEBIAN_FRONTEND="noninteractive" LC_ALL="" LANGUAGE="en_US:en" LANG="en_US.UTF-8" chroot ${abs_blddir}/${dist_target} /usr/sbin/dpkg-reconfigure locales
+
+    echo "Updating packages..."
+    DEBIAN_FRONTEND="noninteractive" LC_ALL="" LANGUAGE="en_US:en" LANG="en_US.UTF-8" chroot ${abs_blddir}/${dist_target} /usr/bin/apt-get update -q -y
+    DEBIAN_FRONTEND="noninteractive" LC_ALL="" LANGUAGE="en_US:en" LANG="en_US.UTF-8" chroot ${abs_blddir}/${dist_target} /usr/bin/apt-get dist-upgrade -q -y
+
+    echo "Installing server and openssh tasks..."
+    DEBIAN_FRONTEND="noninteractive" LC_ALL="" LANGUAGE="en_US:en" LANG="en_US.UTF-8" chroot ${abs_blddir}/${dist_target} /usr/bin/apt-get install -q -y tasksel
+    LC_ALL="" LANGUAGE="en_US:en" LANG="en_US.UTF-8" chroot ${abs_blddir}/${dist_target} /usr/bin/tasksel --new-install install server
+    LC_ALL="" LANGUAGE="en_US:en" LANG="en_US.UTF-8" chroot ${abs_blddir}/${dist_target} /usr/bin/tasksel --new-install install openssh-server
+    ;;
+  raspbian|debian)
+    case ${dist} in
+      debian)
+        cat > ${abs_blddir}/${dist_target}/etc/apt/sources.list <<EOF
+deb http://ftp.debian.org/debian ${dist_version} main contrib non-free
+deb-src http://ftp.debian.org/debian ${dist_version} main contrib non-free
+
+deb http://ftp.debian.org/debian/ ${dist_version}-updates main contrib non-free
+deb-src http://ftp.debian.org/debian/ ${dist_version}-updates main contrib non-free
+
+deb http://security.debian.org/ ${dist_version}/updates main contrib non-free
+deb-src http://security.debian.org/ ${dist_version}/updates main contrib non-free
+EOF
+        ;;
+      raspbian)
+        cat > ${abs_blddir}/${dist_target}/etc/apt/sources.list <<EOF
+deb http://archive.raspbian.org/raspbian ${dist_version} main contrib non-free
+deb-src http://archive.raspbian.org/raspbian ${dist_version} main contrib non-free
+EOF
+        ;;
+    esac
+    echo "Setting up timezone..."
+    echo "America/Montreal" > ${abs_blddir}/${dist_target}/etc/timezone
+    cp ${abs_blddir}/${dist_target}/usr/share/zoneinfo/America/Montreal ${abs_blddir}/${dist_target}/etc/timezone
+  
+    echo "Updating packages..."
+    DEBIAN_FRONTEND="noninteractive" LC_ALL="" LANGUAGE="en_US:en" LANG="en_US.UTF-8" chroot ${abs_blddir}/${dist_target} /usr/bin/apt-get update -q -y
+    DEBIAN_FRONTEND="noninteractive" LC_ALL="" LANGUAGE="en_US:en" LANG="en_US.UTF-8" chroot ${abs_blddir}/${dist_target} /usr/bin/apt-get dist-upgrade -q -y
+
+    echo "Setting up locales..."
+    cat > ${abs_blddir}/${dist_target}/etc/locale.gen <<EOF
+en_US.UTF-8 UTF-8
+fr_CA.UTF-8 UTF-8
+EOF
+    DEBIAN_FRONTEND="noninteractive" LC_ALL="" LANGUAGE="en_US:en" LANG="en_US.UTF-8" chroot ${abs_blddir}/${dist_target} /usr/bin/apt-get -q -y install locales tasksel
+    DEBIAN_FRONTEND="noninteractive" LC_ALL="" LANGUAGE="en_US:en" LANG="en_US.UTF-8" chroot ${abs_blddir}/${dist_target} /usr/sbin/locale-gen
+    DEBIAN_FRONTEND="noninteractive" LC_ALL="" LANGUAGE="en_US:en" LANG="en_US.UTF-8" chroot ${abs_blddir}/${dist_target} /usr/sbin/update-locale LANG=en_US.UTF-8 LANGUAGE
+    
+    echo "Installing standard and openssh tasks..."
+    case ${dist} in
+      debian)
+        LC_ALL="" LANGUAGE="en_US:en" LANG="en_US.UTF-8" chroot ${abs_blddir}/${dist_target} /usr/bin/tasksel --new-install install standard ssh-server
+        ;;
+      raspbian)
+        LC_ALL="" LANGUAGE="en_US:en" LANG="en_US.UTF-8" chroot ${abs_blddir}/${dist_target} /usr/bin/tasksel install ssh-server
+        ;;
+    esac
+    ;;
+esac
+
+echo "Cleaning up..."
+if [ -d ${abs_blddir}/${dist_target}/dev/pts ]; then umount "${abs_blddir}/${dist_target}/dev/pts"; fi
+if [ -d ${abs_blddir}/${dist_target}/sys ]; then umount "${abs_blddir}/${dist_target}/sys"; fi
+if [ -d ${abs_blddir}/${dist_target}/proc ]; then umount "${abs_blddir}/${dist_target}/proc"; fi
+rm -f ${abs_blddir}/${dist_target}/usr/bin/qemu-arm-static
+rm -f ${abs_blddir}/${dist_target}/usr/sbin/policy-rc.d
+if [ -f ${abs_blddir}/${dist_target}/usr/sbin/policy-rc.d.disabled ]; then mv ${abs_blddir}/${dist_target}/usr/sbin/policy-rc.d.disabled ${abs_blddir}/${dist_target}/usr/sbin/policy-rc.d; fi
+rm -f ${abs_blddir}/${dist_target}/usr/sbin/policy-rc.d.lock
+echo "Done."
+

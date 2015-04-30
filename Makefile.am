@@ -1,6 +1,6 @@
-SUBDIRS = GenSSHKeys NAND-Installer Sunxi-Tools uImage-Installer U-Boot Kernels
+SUBDIRS = GenSSHKeys NAND-Installer Sunxi-Tools uImage-Installer U-Boot Kernels RootFS
 
-EXTRA_DIST=makedeb makever
+EXTRA_DIST=makedeb makever armShell.in debootstrap makerootfs.in
 
 .PHONY: help GenSSHKeys Kernels NAND-Installer Sunxi-Tools U-Boot uImage-Installer
 
@@ -37,7 +37,7 @@ U-Boot:
 	
 uImage-Installer:
 	$(MAKE) -C uImage-Installer
-
+	
 all-local:
 	if ! [ -d $(abs_top_srcdir)/src/linux ]; then $(MKDIR_P) $(abs_top_srcdir)/src/linux; fi
 
@@ -46,10 +46,12 @@ distclean-local: clean-version
 	-find ./ -name "*~" -type f -print0 | xargs -0 /bin/rm -fv
 	-find ./ -name ".*~" -type f -print0 | xargs -0 /bin/rm -fv
 	-rm -fv *.deb
+	-rm -fv *.txz
 
 clean-version: 
 	for i in $(SUBDIRS); do rm -fv $$i/.version; done
 	for i in $(SUBDIRS); do rm -fv $$i/.version_build; done
+	-rm -f armShell
 	
 
 clean-git:

@@ -31,4 +31,7 @@ if test "x${host_alias}" = "xarm-linux-gnueabi"; then
   fi
 fi
 
-AC_OUTPUT(Makefile GenSSHKeys/Makefile NAND-Installer/Makefile Sunxi-Tools/Makefile uImage-Installer/Makefile U-Boot/Makefile Kernels/Makefile)
+AC_SUBST([abs_top_srcdir], [${abs_top_srcdir}])
+AC_SUBST([abs_srcdir], [${abs_srcdir}])
+
+AC_OUTPUT([Makefile GenSSHKeys/Makefile NAND-Installer/Makefile Sunxi-Tools/Makefile uImage-Installer/Makefile U-Boot/Makefile Kernels/Makefile RootFS/Makefile armShell makerootfs], [chmod +x armShell makerootfs])
