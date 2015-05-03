@@ -9,3 +9,15 @@ if [ -x /etc/kernel/postrm.d/initramfs-tools ]; then
   echo "Disabling /etc/kernel/postrm.d/initramfs-tools."
   chmod -x /etc/kernel/postrm.d/initramfs-tools
 fi
+
+if ! [ -f /boot/boot.cmd ]; then
+  echo "Installing boot.cmd"
+  cd /boot
+  cp boot.cmd.dist boot.cmd
+  vmlinuz=$(ls -b vmlinuz-* 2> /dev/null | tail -n 1 | sed "s/vmlinuz-//")
+  if ! [ -z ${vmlinuz} ]; then
+    echo "Found kernel version ${vmlinuz}"
+    /etc/kernel/postinst.d/update-uImage ${vmlinuz}
+  fi
+fi
+

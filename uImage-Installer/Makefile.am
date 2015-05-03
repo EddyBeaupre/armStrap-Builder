@@ -1,4 +1,4 @@
-EXTRA_DIST=postinst prerm update-uImage
+EXTRA_DIST=postinst prerm update-uImage boot.cmd
 
 .PHONY: version clean-version
 
@@ -13,10 +13,12 @@ uImage-Installer: version
 	@echo "--- Building uImage-Installer Debian Package ---"
 	@echo "------------------------------------------------"
 	if ! [ -d $(abs_srcdir)/build/DEBIAN ]; then $(MKDIR_P) $(abs_srcdir)/build/DEBIAN; fi
-	if ! [ -d $(abs_srcdir)/build/etc/kernel/postinst.d ]; then $(MKDIR_P) $(abs_srcdir)/build/etc/kernel/postinst.d/; fi
+	if ! [ -d $(abs_srcdir)/build/boot ]; then $(MKDIR_P) $(abs_srcdir)/build/boot; fi
+	if ! [ -d $(abs_srcdir)/build/etc/kernel/postinst.d ]; then $(MKDIR_P) $(abs_srcdir)/build/etc/kernel/postinst.d; fi
 	$(INSTALL) $(abs_srcdir)/update-uImage $(abs_srcdir)/build/etc/kernel/postinst.d
 	$(INSTALL) $(abs_srcdir)/postinst $(abs_srcdir)/build/DEBIAN
 	$(INSTALL) $(abs_srcdir)/prerm $(abs_srcdir)/build/DEBIAN
+	$(INSTALL_DATA) $(abs_srcdir)/boot.cmd.dist $(abs_srcdir)/build/boot/
 	${SHELL} $(abs_top_srcdir)/makedeb -n armStrap-$(subdir) -v @$(abs_srcdir)/.version -B @$(abs_srcdir)/.version_build -u $(PACKAGE_BUGREPORT) -b $(abs_srcdir)/build -p $(prefix) -h $(host_alias) -l " This package provide the uImage installer used by armStrap."
 	mv $(abs_srcdir)/*.deb $(abs_top_srcdir)
 	@touch uImage-Installer
