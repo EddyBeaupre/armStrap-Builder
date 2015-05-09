@@ -8,6 +8,24 @@ function usage {
   echo "Usage $(basename $0) -d <ubuntu|debian> -v <version> -p <prefix>"
 }
 
+#testRepo <SERVER> <DIST> <COMPONENTS>
+function debianRepo {
+  local tmp_cmt="#"
+  local tmp_srv="${1}"
+  local tmp_dst="${2}"
+  shift
+  shift
+
+  /usr/bin/wget -O/dev/null -q ${tmp_srv}/dists/${tmp_dst}/Release.gpg
+
+  if [ "$?" == "0" ]; then
+    tmp_cmt=""
+  fi
+
+  echo "${tmp_cmt}deb ${tmp_srv} ${tmp_dst} ${@}"
+  echo -e "${tmp_cmt}deb-src ${tmp_srv} ${tmp_dst} ${@}\n"
+}
+
 while getopts ":p:d:v:" opt; do
   case $opt in
     d)
@@ -93,10 +111,13 @@ if [ -d ${abs_blddir}/${dist_target}/sys ]; then mount --bind /sys "${abs_blddir
 if [ -d ${abs_blddir}/${dist_target}/dev/pts ]; then mount --bind /dev/pts "${abs_blddir}/${dist_target}/dev/pts"; fi
 
 echo "Setting up basic configuration..."
+echo "armstrap" > ${abs_blddir}/${dist_target}/etc/hostname
+
 cat > ${abs_blddir}/${dist_target}/etc/resolv.conf <<EOF
 domain armstrap.net
 nameserver 8.8.8.8
 nameserver 8.8.4.4
+nameserver 127.0.0.1
 EOF
 
 cat > ${abs_blddir}/${dist_target}/armstrapkey <<EOF
@@ -131,43 +152,28 @@ esac
 
 case ${dist} in 
   ubuntu)
-    cat > ${abs_blddir}/${dist_target}/etc/apt/sources.list <<EOF
-# See http://help.ubuntu.com/community/UpgradeNotes for how to upgrade to
-# newer versions of the distribution.
-
-deb http://ports.ubuntu.com/ubuntu-ports/ ${dist_version} main restricted
-deb-src http://ports.ubuntu.com/ubuntu-ports/ ${dist_version} main restricted
-
-## Major bug fix updates produced after the final release of the
-## distribution.
-deb http://ports.ubuntu.com/ubuntu-ports/ ${dist_version}-updates main restricted
-deb-src http://ports.ubuntu.com/ubuntu-ports/ ${dist_version}-updates main restricted
-
-## Uncomment the following two lines to add software from the 'universe'
-## repository.
-## N.B. software from this repository is ENTIRELY UNSUPPORTED by the Ubuntu
-## team. Also, please note that software in universe WILL NOT receive any
-## review or updates from the Ubuntu security team.
-deb http://ports.ubuntu.com/ubuntu-ports/ ${dist_version} universe
-deb-src http://ports.ubuntu.com/ubuntu-ports/ ${dist_version} universe
-deb http://ports.ubuntu.com/ubuntu-ports/ ${dist_version}-updates universe
-deb-src http://ports.ubuntu.com/ubuntu-ports/ ${dist_version}-updates universe
-
-## N.B. software from this repository may not have been tested as
-## extensively as that contained in the main release, although it includes
-## newer versions of some applications which may provide useful features.
-## Also, please note that software in backports WILL NOT receive any review
-## or updates from the Ubuntu security team.
-deb http://ports.ubuntu.com/ubuntu-ports/ ${dist_version}-backports main restricted
-deb-src http://ports.ubuntu.com/ubuntu-ports/ ${dist_version}-backports main restricted
-
-deb http://ports.ubuntu.com/ubuntu-ports/ ${dist_version}-security main restricted
-deb-src http://ports.ubuntu.com/ubuntu-ports/ ${dist_version}-security main restricted
-deb http://ports.ubuntu.com/ubuntu-ports/ ${dist_version}-security universe
-deb-src http://ports.ubuntu.com/ubuntu-ports/ ${dist_version}-security universe
-deb http://ports.ubuntu.com/ubuntu-ports/ ${dist_version}-security multiverse
-deb-src http://ports.ubuntu.com/ubuntu-ports/ ${dist_version}-security multiverse
-EOF
+    echo "## See http://help.ubuntu.com/community/UpgradeNotes for how to upgrade to" > ${abs_blddir}/${dist_target}/etc/apt/sources.list
+    echo -e "## newer versions of the distribution.\n" >> ${abs_blddir}/${dist_target}/etc/apt/sources.list
+    debianRepo "http://ports.ubuntu.com/ubuntu-ports" "${dist_version}" "main restricted" >> ${abs_blddir}/${dist_target}/etc/apt/sources.list
+    echo "## Major bug fix updates produced after the final release of the" >> ${abs_blddir}/${dist_target}/etc/apt/sources.list
+    echo -e "## distribution.\n" >> ${abs_blddir}/${dist_target}/etc/apt/sources.list
+    debianRepo "http://ports.ubuntu.com/ubuntu-ports" "${dist_version}-updates" "main restricted" >> ${abs_blddir}/${dist_target}/etc/apt/sources.list
+    echo "## Uncomment the following lines to add software from the 'universe'" >> ${abs_blddir}/${dist_target}/etc/apt/sources.list
+    echo "## repository." >> ${abs_blddir}/${dist_target}/etc/apt/sources.list
+    echo "## N.B. software from this repository is ENTIRELY UNSUPPORTED by the Ubuntu" >> ${abs_blddir}/${dist_target}/etc/apt/sources.list
+    echo "## team. Also, please note that software in universe WILL NOT receive any" >> ${abs_blddir}/${dist_target}/etc/apt/sources.list
+    echo -e "## review or updates from the Ubuntu security team.\n" >> ${abs_blddir}/${dist_target}/etc/apt/sources.list
+    debianRepo "http://ports.ubuntu.com/ubuntu-ports" "${dist_version}" "universe" >> ${abs_blddir}/${dist_target}/etc/apt/sources.list
+    debianRepo "http://ports.ubuntu.com/ubuntu-ports" "${dist_version}-updates" "universe" >> ${abs_blddir}/${dist_target}/etc/apt/sources.list
+    echo "## N.B. software from this repository may not have been tested as" >> ${abs_blddir}/${dist_target}/etc/apt/sources.list
+    echo "## extensively as that contained in the main release, although it includes" >> ${abs_blddir}/${dist_target}/etc/apt/sources.list
+    echo "## newer versions of some applications which may provide useful features." >> ${abs_blddir}/${dist_target}/etc/apt/sources.list
+    echo "## Also, please note that software in backports WILL NOT receive any review" >> ${abs_blddir}/${dist_target}/etc/apt/sources.list
+    echo -e "## or updates from the Ubuntu security team.\n" >> ${abs_blddir}/${dist_target}/etc/apt/sources.list
+    debianRepo "http://ports.ubuntu.com/ubuntu-ports" "${dist_version}-backports" "main restricted" >> ${abs_blddir}/${dist_target}/etc/apt/sources.list
+    debianRepo "http://ports.ubuntu.com/ubuntu-ports" "${dist_version}-security" "main restricted" >> ${abs_blddir}/${dist_target}/etc/apt/sources.list
+    debianRepo "http://ports.ubuntu.com/ubuntu-ports" "${dist_version}-security" "universe" >> ${abs_blddir}/${dist_target}/etc/apt/sources.list
+    debianRepo "http://ports.ubuntu.com/ubuntu-ports" "${dist_version}-security" "multiverse" >> ${abs_blddir}/${dist_target}/etc/apt/sources.list
 
     echo "Setting up timezone..."
     echo "America/Montreal" > ${abs_blddir}/${dist_target}/etc/timezone
@@ -178,6 +184,7 @@ EOF
     DEBIAN_FRONTEND="noninteractive" LC_ALL="" LANGUAGE="en_US:en" LANG="en_US.UTF-8" chroot ${abs_blddir}/${dist_target} /usr/sbin/dpkg-reconfigure locales
 
     echo "Updating packages..."
+    DEBIAN_FRONTEND="noninteractive" LC_ALL="" LANGUAGE="en_US:en" LANG="en_US.UTF-8" chroot ${abs_blddir}/${dist_target} /usr/bin/apt-get -q -y -f install
     DEBIAN_FRONTEND="noninteractive" LC_ALL="" LANGUAGE="en_US:en" LANG="en_US.UTF-8" chroot ${abs_blddir}/${dist_target} /usr/bin/apt-get update -q -y
     DEBIAN_FRONTEND="noninteractive" LC_ALL="" LANGUAGE="en_US:en" LANG="en_US.UTF-8" chroot ${abs_blddir}/${dist_target} /usr/bin/apt-get dist-upgrade -q -y
 
@@ -189,22 +196,12 @@ EOF
   raspbian|debian)
     case ${dist} in
       debian)
-        cat > ${abs_blddir}/${dist_target}/etc/apt/sources.list <<EOF
-deb http://ftp.debian.org/debian ${dist_version} main contrib non-free
-deb-src http://ftp.debian.org/debian ${dist_version} main contrib non-free
-
-deb http://ftp.debian.org/debian/ ${dist_version}-updates main contrib non-free
-deb-src http://ftp.debian.org/debian/ ${dist_version}-updates main contrib non-free
-
-deb http://security.debian.org/ ${dist_version}/updates main contrib non-free
-deb-src http://security.debian.org/ ${dist_version}/updates main contrib non-free
-EOF
+        debianRepo "http://ftp.debian.org/debian" "${dist_version}" "main contrib non-free" > ${abs_blddir}/${dist_target}/etc/apt/sources.list
+        debianRepo "http://ftp.debian.org/debian" "${dist_version}-updates" "main contrib non-free" >> ${abs_blddir}/${dist_target}/etc/apt/sources.list
+        debianRepo "http://security.debian.org" "${dist_version}/updates" "main contrib non-free" >> ${abs_blddir}/${dist_target}/etc/apt/sources.list
         ;;
       raspbian)
-        cat > ${abs_blddir}/${dist_target}/etc/apt/sources.list <<EOF
-deb http://archive.raspbian.org/raspbian ${dist_version} main contrib non-free
-deb-src http://archive.raspbian.org/raspbian ${dist_version} main contrib non-free
-EOF
+        debianRepo "http://archive.raspbian.org/raspbian" "${dist_version}" "main contrib non-free" > ${abs_blddir}/${dist_target}/etc/apt/sources.list
         ;;
     esac
     echo "Setting up timezone..."

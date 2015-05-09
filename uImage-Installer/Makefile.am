@@ -1,4 +1,4 @@
-EXTRA_DIST=postinst prerm update-uImage boot.cmd
+EXTRA_DIST=postinst prerm update-uImage boot.cmd.dist
 
 .PHONY: version clean-version
 
