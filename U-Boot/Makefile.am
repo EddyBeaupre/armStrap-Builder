@@ -1,4 +1,4 @@
-EXTRA_DIST=armstrap-u-boot.8  armstrap-u-boot-installer.in armstrap-u-boot-installer.8 postinst.in boot.cmd.dist
+EXTRA_DIST=armstrap-u-boot.8  armstrap-u-boot-installer.in armstrap-u-boot-installer.8 postinst.in boot.cmd.dist U-Boot.mk
 
 .NOTPARALLEL:
 
@@ -23,6 +23,7 @@ SUNXI_BOARDS_URL = https\://github.com/linux-sunxi/sunxi-boards.git
 SUNXI_BOARDS_FEX = $(BUILDER_ROOT)/$(SUNXI_BOARDS_DIR)/sys_config/$(U_BOOT_CPU)/$(U_BOOT_FEX)
 
 SOURCE_LST = $(U_BOOT_DIR)/$(U_BOOT_URL) $(U_BOOT_SUNXI_DIR)/$(U_BOOT_SUNXI_URL) $(SUNXI_BOARDS_DIR)/$(SUNXI_BOARDS_URL)
+SOURCE = `echo -n "$@" | awk -F '/' '{print $$1}'`
 SOURCE_DIR = $(BUILDER_ROOT)/`echo -n "$@" | awk -F '/' '{print $$1}'`
 SOURCE_GIT = `echo -n "$@" | sed -e 's/^\([^\/]*\)\///'`
 
@@ -37,44 +38,27 @@ SUNXI_FEX_SRC = $(BUILDER_ROOT)/$(SUNXI_BOARDS_DIR)/sys_config/$(U_BOOT_CPU)/$(U
 .PHONY: u-boot-git $(SOURCE_LST)
 
 u-boot-git: $(SOURCE_LST)
+	@touch u-boot-git
 
 $(SOURCE_LST):
-	@echo "-----------------[ Downloading/Updating bootloader sources ]-----------------"
-	@echo "---  Source Directory : $(SOURCE_DIR)"
-	@echo "--- Source Repository : $(SOURCE_GIT)"
-	@echo "-----------------------------------------------------------------------------"
-	@if [ -d $(SOURCE_DIR) ]; then cd $(SOURCE_DIR) && git pull; else git clone $(SOURCE_GIT) $(SOURCE_DIR); fi
-	
+	@$(MAKE) -C $(abs_srcdir) -f $(abs_srcdir)/U-Boot.mk SOURCE="$(SOURCE)" SOURCE_DIR="$(SOURCE_DIR)" SOURCE_GIT="$(SOURCE_GIT)"
+
 .PHONY: u-boot-builder $(U_BOOT_LST)
 
 u-boot-builder: $(U_BOOT_LST)
+	@touch u-boot-builder
 
 $(U_BOOT_LST):
-	@echo "-----------------------[ Building bootloader package ]-----------------------"
-	@echo "--- Bootloader Configuration : $(U_BOOT_CNF)"
-	@echo "---           Bootloader CPU : $(U_BOOT_CPU)"
-	@echo "---           Bootloader Fex : $(U_BOOT_FEX)"
-	@echo "-----------------------------------------------------------------------------"
-	if [ -d $(U_BOOT_SRC) ]; then $(MAKE) -C $(U_BOOT_SRC) CROSS_COMPILE=$(CROSS_COMPILE) distclean; fi
-	if [ -d $(U_BOOT_SUNXI_SRC) ]; then $(MAKE) -C $(U_BOOT_SUNXI_SRC) CROSS_COMPILE=$(CROSS_COMPILE) distclean; fi
-	$(MAKE) -C $(U_BOOT_SRC) CROSS_COMPILE=$(CROSS_COMPILE) $(U_BOOT_CNF)_defconfig
-	$(MAKE) -C $(U_BOOT_SUNXI_SRC) CROSS_COMPILE=$(CROSS_COMPILE) $(U_BOOT_CNF)_config	
-	$(MAKE) $(MAKE_PARAMS) -C $(U_BOOT_SRC) CROSS_COMPILE=$(CROSS_COMPILE)
-	$(MAKE) $(MAKE_PARAMS) -C $(U_BOOT_SUNXI_SRC) CROSS_COMPILE=$(CROSS_COMPILE)
-	if ! [ -d $(U_BOOT_DST) ]; then $(MKDIR_P) $(U_BOOT_DST); fi
-	if ! [ -d $(U_BOOT_SUNXI_DST) ]; then $(MKDIR_P) $(U_BOOT_SUNXI_DST); fi
-	$(INSTALL_DATA) $(U_BOOT_SRC)/u-boot-sunxi-with-spl.bin $(U_BOOT_DST)
-	$(INSTALL_DATA) $(U_BOOT_SUNXI_SRC)/u-boot-sunxi-with-spl.bin $(U_BOOT_SUNXI_DST)
-	$(INSTALL_DATA) $(SUNXI_BOARDS_FEX) $(U_BOOT_DST)
-	$(INSTALL_DATA) $(SUNXI_BOARDS_FEX) $(U_BOOT_SUNXI_DST)
+	@$(MAKE) -C $(abs_srcdir) -f $(abs_srcdir)/U-Boot.mk U_BOOT_BRD="$(U_BOOT_BRD)" U_BOOT_CNF="$(U_BOOT_CNF)" U_BOOT_CPU="$(U_BOOT_CPU)" U_BOOT_FEX="$(U_BOOT_FEX)" CROSS_COMPILE="$(CROSS_COMPILE)" U_BOOT_SRC="$(U_BOOT_SRC)" U_BOOT_SUNXI_SRC="$(U_BOOT_SUNXI_SRC)" U_BOOT_DST="$(U_BOOT_DST)" U_BOOT_SUNXI_DST="$(U_BOOT_SUNXI_DST)" INSTALL_DATA="$(INSTALL_DATA)" SUNXI_BOARDS_FEX="$(SUNXI_BOARDS_FEX)" MAKE="$(MAKE)" MAKE_PARAMS="$(MAKE_PARAMS)" MKDIR_P="$(MKDIR_P)"
 	
 version:
 	${SHELL} $(abs_top_srcdir)/makever $(abs_srcdir)/.version $(abs_srcdir)/.version_build
+	@touch version
 	
 clean-version:
 	-rm -fv $(abs_srcdir)/.version $(abs_srcdir)/.version_build
 	
-makedeb: version u-boot-git u-boot-builder
+u-boot-pkg: version u-boot-git u-boot-builder
 	if ! [ -d $(U_BOOT_PKG)/DEBIAN ]; then $(MKDIR_P) $(U_BOOT_PKG)/DEBIAN; fi
 	if ! [ -d $(U_BOOT_SUNXI_PKG)/DEBIAN ]; then $(MKDIR_P) $(U_BOOT_SUNXI_PKG)/DEBIAN; fi
 	$(INSTALL) postinst.in $(U_BOOT_PKG)/DEBIAN/postinst
@@ -100,11 +84,12 @@ makedeb: version u-boot-git u-boot-builder
 	@${SHELL} $(abs_top_srcdir)/makedeb -n armStrap-$(subdir) -v @$(abs_srcdir)/.version -B @$(abs_srcdir)/.version_build -u $(PACKAGE_BUGREPORT) -b $(U_BOOT_PKG) -p $(prefix) -h $(host_alias) -c armstrap-$(subdir)-sunxi -d "armstrap-sunxi-tools (>= 20150410)" -l " This package contain all the bootloaders avalable to\n armStrap. For more information check the armStrap project\n repository."
 	@${SHELL} $(abs_top_srcdir)/makedeb -n armStrap-$(subdir)-sunxi -v @$(abs_srcdir)/.version -B @$(abs_srcdir)/.version_build -u $(PACKAGE_BUGREPORT) -b $(U_BOOT_SUNXI_PKG) -p $(prefix) -h $(host_alias) -c armstrap-$(subdir) -d "armstrap-sunxi-tools (>= 20150410)" -l " This package contain all the bootloaders avalable to\n armStrap. For more information check the armStrap project\n repository."
 	mv *.deb $(abs_top_srcdir)
+	@touch u-boot-pkg
 
-all-local: makedeb
+all-local: u-boot-pkg
 	
 clean-local:
-	-rm -fv U-Boot
+	-rm -fv $(abs_srcdir)/U-Boot $(abs_srcdir)/u-boot-pkg $(abs_srcdir)/*.git $(abs_srcdir)/*.build $(abs_srcdir)/version $(abs_srcdir)/u-boot-builder $(abs_srcdir)/u-boot-git
 	if [ -d $(abs_srcdir)/build ]; then rm -rfv $(abs_srcdir)/build; fi
 	if [ -d $(abs_srcdir)/debian ]; then rm -rfv $(abs_srcdir)/debian; fi
 

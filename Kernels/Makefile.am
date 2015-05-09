@@ -58,7 +58,7 @@ Kernels: kernels-git kernels-builder
 all-local: version Kernels
 
 clean-local: version-clean
-	-rm -fv $(abs_srcdir)/*.build $(abs_srcdir)/*.git 
+	-rm -fv $(abs_srcdir)/*.build $(abs_srcdir)/*.git $(abs_srcdir)/kernel-version
 
 clean-git:
 	if [ -d $(abs_top_srcdir)/src/linux ]; then rm -rfv $(abs_top_srcdir)/src/linux; fi
