@@ -10,13 +10,13 @@ U_BOOT_DIR = u-boot
 U_BOOT_URL = git\://git.denx.de/u-boot.git
 U_BOOT_SRC = $(BUILDER_ROOT)/$(U_BOOT_DIR)/
 U_BOOT_PKG = $(abs_srcdir)/build/u-boot
-U_BOOT_DST = $(U_BOOT_PKG)$(datarootdir)/armStrap-$(subdir)/$(U_BOOT_BRD)
+U_BOOT_DST = $(U_BOOT_PKG)$(datarootdir)/armStrap-$(subdir)/$(U_BOOT_BLW)
 
 U_BOOT_SUNXI_DIR = u-boot-sunxi
 U_BOOT_SUNXI_URL = https\://github.com/linux-sunxi/u-boot-sunxi.git
 U_BOOT_SUNXI_SRC = $(BUILDER_ROOT)/$(U_BOOT_SUNXI_DIR)/
 U_BOOT_SUNXI_PKG = $(abs_srcdir)/build/u-boot-sunxi
-U_BOOT_SUNXI_DST = $(U_BOOT_SUNXI_PKG)$(datarootdir)/armStrap-$(subdir)/$(U_BOOT_BRD)
+U_BOOT_SUNXI_DST = $(U_BOOT_SUNXI_PKG)$(datarootdir)/armStrap-$(subdir)/$(U_BOOT_BLW)
 
 SUNXI_BOARDS_DIR = suxi-boards
 SUNXI_BOARDS_URL = https\://github.com/linux-sunxi/sunxi-boards.git
@@ -29,6 +29,7 @@ SOURCE_GIT = `echo -n "$@" | sed -e 's/^\([^\/]*\)\///'`
 
 U_BOOT_LST = Cubieboard/Cubieboard/a10/cubieboard.fex Hackberry/Cubieboard/a10/hackberry.fex Cubieboard2/Cubieboard2/a20/cubieboard2.fex A70x/Cubieboard2/a20/a70x.fex Cubietruck/Cubietruck/a20/cubietruck.fex
 U_BOOT_BRD = `echo -n "$@" | awk -F '/' '{print $$1}'`
+U_BOOT_BLW = `echo -n "$@" | awk -F '/' '{print $$1}' | /usr/bin/tr '[:upper:]' '[:lower:]'`
 U_BOOT_CNF = `echo -n "$@" | awk -F '/' '{print $$2}'`
 U_BOOT_CPU = `echo -n "$@" | awk -F '/' '{print $$3}'`
 U_BOOT_FEX = `echo -n "$@" | awk -F '/' '{print $$4}'`

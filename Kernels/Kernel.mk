@@ -30,8 +30,8 @@ $(KERNEL_CNF).build:
 		$(MAKE_KNL) $(KERNEL_CNF)_defconfig; \
 		sed -i "s/CONFIG_LOCALVERSION_AUTO=y/# CONFIG_LOCALVERSION_AUTO is not set/" $(KERNEL_SRC)/.config; \
 	fi
-	$(MAKE_KNL) --no-print-directory -s EXTRAVERSION=-$(KERNEL_CNF) kernelrelease > $(abs_srcdir)/kernel-version
 	$(MAKE_KNL)
+	$(MAKE_KNL) --no-print-directory -s kernelrelease > $(abs_srcdir)/kernel-version
 	if [ -d $(abs_srcdir)/dtbs ]; then rm -rfv $(abs_srcdir)/dtbs; fi;
 	if [ -d $(abs_srcdir)/debian ]; then rm -rfv $(abs_srcdir)/debian; fi;
 	if [ -f $(KERNEL_SRC)/arch/arm/boot/dts/sun4i-a10.dtsi ]; then \

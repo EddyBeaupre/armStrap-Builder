@@ -1,21 +1,8 @@
 #!/bin/bash
 
 if ! [[ -z ${1} && -z ${2} ]]; then
-  if [ -f ${1} ]; then
-    version_date=$(cat ${1})
-  else
-    version_date=$(date +%Y%m%d)
-  fi
-  if [ -f ${2} ]; then
-    version_build=$(cat ${2})
-    if [ "$(date +%Y%m%d)" == "${version_date}" ]; then
-      version_build=$((${version_build} + 1))
-    else
-      version_build=1
-    fi
-  else
-    version_build=1
-  fi
+  version_date=$(date +%G%V%H%M)
+  version_build=1
   echo "${version_date}" > ${1}
   echo "${version_build}" > ${2}
   echo "Version is now ${version_date}-${version_build}"
