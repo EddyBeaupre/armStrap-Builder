@@ -1,5 +1,5 @@
 AC_PREREQ([2.69])
-AC_INIT([armStrap-Builder], [1.0-1], [https://github.com/EddyBeaupre/armStrap-Builder/])
+AC_INIT([armStrap-Builder], [1.0-1], [https://github.com/armStrapTools/armStrap-Builder])
 AM_INIT_AUTOMAKE(-Wno-portability)
 
 AC_PROG_MKDIR_P()

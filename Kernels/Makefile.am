@@ -6,7 +6,7 @@ MAKE_KNL = $(MAKE_CMD) -C $(KERNEL_SRC) EXTRAVERSION=-$(KERNEL_CNF)
 
 BUILDER_ROOT = $(abs_top_srcdir)/src/linux
 
-SOURCE_LST = sunxi/https\://github.com/linux-sunxi/linux-sunxi.git sunxi-ct/https\://github.com/EddyBeaupre/linux-sunxi-ap6210.git mainline/git\://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git
+SOURCE_LST = sunxi/https\://github.com/linux-sunxi/linux-sunxi.git sunxi-ct/https\://github.com/armStrapTools/linux-sunxi-ap6210.git mainline/git\://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git
 SOURCE_TYPE = `echo -n "$@" | awk -F '/' '{print $$1}'`
 SOURCE_DIR = $(BUILDER_ROOT)/`echo -n "$@" | awk -F '/' '{print $$1}'`
 SOURCE_GIT = `echo -n "$@" | sed -e 's/^\([^\/]*\)\///'`

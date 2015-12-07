@@ -19,7 +19,7 @@ U_BOOT_SUNXI_PKG = $(abs_srcdir)/build/u-boot-sunxi
 U_BOOT_SUNXI_DST = $(U_BOOT_SUNXI_PKG)$(datarootdir)/armStrap-$(subdir)/$(U_BOOT_BLW)
 
 SUNXI_BOARDS_DIR = suxi-boards
-SUNXI_BOARDS_URL = https\://github.com/EddyBeaupre/sunxi-boards.git
+SUNXI_BOARDS_URL = https\://github.com/armStrapTools/sunxi-boards.git
 SUNXI_BOARDS_FEX = $(BUILDER_ROOT)/$(SUNXI_BOARDS_DIR)/sys_config/$(U_BOOT_CPU)/$(U_BOOT_FEX)
 
 SOURCE_LST = $(U_BOOT_DIR)/$(U_BOOT_URL) $(U_BOOT_SUNXI_DIR)/$(U_BOOT_SUNXI_URL) $(SUNXI_BOARDS_DIR)/$(SUNXI_BOARDS_URL)
