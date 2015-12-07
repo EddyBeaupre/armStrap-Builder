@@ -1,7 +1,7 @@
 #!/bin/bash
 
 if ! [[ -z ${1} && -z ${2} ]]; then
-  version_date=$(date +%G%V%H%M)
+  version_date=$(date +%G%j%H%M)
   version_build=1
   echo "${version_date}" > ${1}
   echo "${version_build}" > ${2}
