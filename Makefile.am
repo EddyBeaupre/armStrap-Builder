@@ -1,8 +1,8 @@
-SUBDIRS = GenSSHKeys NAND-Installer Sunxi-Tools uImage-Installer U-Boot Kernels RootFS
+SUBDIRS = GenSSHKeys NAND-Installer uImage-Installer U-Boot Kernels RootFS
 
 EXTRA_DIST=makedeb makever armShell.in debootstrap makerootfs.in
 
-.PHONY: help GenSSHKeys Kernels NAND-Installer Sunxi-Tools U-Boot uImage-Installer
+.PHONY: help GenSSHKeys Kernels NAND-Installer U-Boot uImage-Installer
 
 help:
 	@echo -e "armStrap-Builder."
@@ -15,7 +15,6 @@ help:
 	@echo "  GenSSHKeys       - Build GenSSHKeys package."
 	@echo "  Kernels          - Build Kernel packages."
 	@echo "  NAND-Installer   - Build NAND-Installer package."
-	@echo "  Sunxi-Tools      - Build Sunxi-Tools package."
 	@echo "  U-Boot           - Build U-Boot packages."
 	@echo -e "  uImage-Installer - Build uImage-Installer package.\n"
 	@for i in $(SUBDIRS); do $(MAKE) -s -C $$i help; done
@@ -28,9 +27,6 @@ Kernels:
 	
 NAND-Installer:
 	$(MAKE) -C NAND-Installer
-	
-Sunxi-Tools:
-	$(MAKE) -C Sunxi-Tools
 	
 U-Boot:
 	$(MAKE) -C U-Boot
